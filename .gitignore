@@ -1,0 +1,46 @@
+# Binaries and executables
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+/server
+/wltrak
+
+# Generated templ files
+*_templ.go
+
+# Test binary, built with `go test -c`
+*.test
+
+# Output of the go coverage tool
+*.out
+
+# Dependency directories
+vendor/
+
+# Go workspace file
+go.work
+
+# IDE specific files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local configuration
+*.local.yaml
+*.local.json
+
+# OS specific files
+.DS_Store
+Thumbs.db
+
+# Build directories
+/bin
+/build
+/dist
+
+# Log files
+*.log
+.envrc

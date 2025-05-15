@@ -1,0 +1,236 @@
+package templates
+
+import (
+	"github.com/user/wltrak/internal/models"
+	"strconv"
+)
+
+// Helper functions for exercise templates
+func getExerciseFormTitle(exercise *models.Exercise) string {
+	if exercise == nil {
+		return "New Exercise"
+	}
+	return "Edit Exercise"
+}
+
+func getExerciseFormAction(exercise *models.Exercise) string {
+	if exercise == nil {
+		return "/api/exercises"
+	}
+	return "/api/exercises/" + strconv.FormatInt(exercise.ID, 10)
+}
+
+func getExerciseFormButtonText(exercise *models.Exercise) string {
+	if exercise == nil {
+		return "Create Exercise"
+	}
+	return "Update Exercise"
+}
+
+templ ExerciseList(exercises []models.Exercise) {
+	@Layout("Exercises") {
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-2xl font-bold">Your Exercises</h1>
+				<a href="/exercises/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+					Add Exercise
+				</a>
+			</div>
+			if len(exercises) == 0 {
+				<div class="text-center py-8">
+					<p class="text-gray-500 mb-4">You haven't added any exercises yet.</p>
+					<p class="text-gray-500">Start by adding the exercises you want to track!</p>
+				</div>
+			} else {
+				<div class="overflow-x-auto">
+					<table class="w-full table-auto">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Current 1RM</th>
+								<th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-200">
+							for _, exercise := range exercises {
+								<tr class="hover:bg-gray-50">
+									<td class="px-6 py-4 whitespace-nowrap">
+										<a href={ templ.SafeURL("/exercises/" + strconv.FormatInt(exercise.ID, 10)) } class="text-blue-600 hover:underline font-medium">
+											{ exercise.Name }
+										</a>
+									</td>
+									<td class="px-6 py-4">
+										<p class="text-gray-600 truncate max-w-xs">{ exercise.Description }</p>
+									</td>
+									<td class="px-6 py-4" hx-get={ "/api/exercises/" + strconv.FormatInt(exercise.ID, 10) + "/1rm" } hx-trigger="load">
+										<div class="animate-pulse bg-gray-200 h-6 w-16 rounded"></div>
+									</td>
+									<td class="px-6 py-4 text-right">
+										<a href={ templ.SafeURL("/exercises/" + strconv.FormatInt(exercise.ID, 10)) } class="text-blue-600 hover:underline mr-4">Details</a>
+										<button
+											hx-delete={ "/api/exercises/" + strconv.FormatInt(exercise.ID, 10) }
+											hx-confirm={ "Are you sure you want to delete " + exercise.Name + "?" }
+											hx-target="closest tr"
+											hx-swap="outerHTML"
+											class="text-red-600 hover:underline"
+										>
+											Delete
+										</button>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ ExerciseForm(exercise *models.Exercise) {
+	@Layout(getExerciseFormTitle(exercise)) {
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold">
+					if exercise == nil {
+						Create New Exercise
+					} else {
+						Edit Exercise
+					}
+				</h1>
+			</div>
+			<form
+				id="exercise-form"
+				if exercise == nil {
+					hx-post={ getExerciseFormAction(exercise) }
+				} else {
+					hx-put={ getExerciseFormAction(exercise) }
+				}
+				hx-target="#form-feedback"
+				hx-swap="outerHTML"
+				class="space-y-6"
+			>
+				<div id="form-feedback"></div>
+				<div>
+					<label for="name" class="block text-sm font-medium text-gray-700 mb-1">Exercise Name</label>
+					<input
+						type="text"
+						name="name"
+						id="name"
+						required
+						if exercise != nil {
+							value={ exercise.Name }
+						}
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+						placeholder="e.g., Squat Clean"
+					/>
+				</div>
+				<div>
+					<label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description (Optional)</label>
+					<textarea
+						name="description"
+						id="description"
+						rows="3"
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+						placeholder="Describe this exercise..."
+					>
+						if exercise != nil {
+							{ exercise.Description }
+						}
+					</textarea>
+				</div>
+				if exercise != nil {
+					<div>
+						<label for="one_rep_max" class="block text-sm font-medium text-gray-700 mb-1">One Rep Max (kg)</label>
+						<input
+							type="number"
+							name="one_rep_max"
+							id="one_rep_max"
+							step="5"
+							min="0"
+							value={ strconv.FormatFloat(exercise.OneRepMax, 'f', -1, 64) }
+							class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+							placeholder="Enter your current 1RM"
+						/>
+					</div>
+				}
+				<div class="flex justify-end space-x-3">
+					<a href="/exercises" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+						Cancel
+					</a>
+					<button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+						{ getExerciseFormButtonText(exercise) }
+					</button>
+				</div>
+			</form>
+		</div>
+	}
+}
+
+templ ExerciseDetail(exercise models.Exercise, oneRepMax *models.OneRepMax) {
+	@Layout(exercise.Name) {
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-2xl font-bold">{ exercise.Name }</h1>
+				<div class="space-x-3">
+					<a href={ templ.SafeURL("/exercises/" + strconv.FormatInt(exercise.ID, 10) + "/edit") } class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+						Edit Exercise
+					</a>
+				</div>
+			</div>
+			<div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+				<div>
+					<h2 class="text-lg font-medium mb-2">Details</h2>
+					<div class="bg-gray-50 p-4 rounded">
+						<div class="mb-3">
+							<h3 class="text-sm font-medium text-gray-500">Description</h3>
+							<p class="text-gray-900">{ exercise.Description }</p>
+						</div>
+						<div>
+							<h3 class="text-sm font-medium text-gray-500">Added On</h3>
+							<p class="text-gray-900">{ exercise.CreatedAt.Format("January 2, 2006") }</p>
+						</div>
+					</div>
+				</div>
+				<div>
+					<h2 class="text-lg font-medium mb-2">One Rep Max (1RM)</h2>
+					<div class="bg-gray-50 p-4 rounded">
+						if oneRepMax == nil {
+							<div class="text-center py-3">
+								<p class="text-gray-500 mb-3">No 1RM data recorded yet</p>
+								<p class="text-sm text-gray-500">
+									You can set your 1RM by editing this exercise.
+								</p>
+							</div>
+						} else {
+							<div>
+								<div class="mb-3">
+									<h3 class="text-sm font-medium text-gray-500">Current 1RM</h3>
+									<p class="text-2xl font-bold text-gray-900">{ oneRepMax.Weight } kg</p>
+								</div>
+								<div>
+									<h3 class="text-sm font-medium text-gray-500">Last Updated</h3>
+									<p class="text-gray-900">{ oneRepMax.Date.Format("January 2, 2006") }</p>
+								</div>
+							</div>
+						}
+					</div>
+				</div>
+			</div>
+			<div class="mt-6">
+				<h2 class="text-lg font-medium mb-4">Progress Chart</h2>
+				<div class="border rounded-lg p-4">
+					<div class="h-64">
+						<canvas id="exercise-progress-chart"></canvas>
+					</div>
+					<div id="chart-no-data" class="text-center text-gray-500 hidden py-6">
+						No workout data available for this exercise yet.
+					</div>
+				</div>
+			</div>
+		</div>
+	}
+}
+
+// OneRepMaxForm has been removed as we're now setting 1RM only through the exercise edit form

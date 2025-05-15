@@ -1,0 +1,91 @@
+package templates
+
+import (
+	"github.com/user/wltrak/internal/models"
+	"strconv"
+)
+
+templ Home(recentWorkouts []models.Workout, exercises []models.Exercise) {
+	@Layout("Home") {
+		<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+			<section class="bg-white rounded-lg shadow p-6">
+				<div class="flex justify-between items-center mb-4">
+					<h2 class="text-2xl font-bold">Recent Workouts</h2>
+					<a href="/workouts/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+						Add Workout
+					</a>
+				</div>
+				if len(recentWorkouts) == 0 {
+					<p class="text-gray-500">No workouts recorded yet. Start by adding your first workout!</p>
+				} else {
+					<ul class="space-y-3">
+						for _, workout := range recentWorkouts {
+							<li class="border-b border-gray-200 pb-2 last:border-0">
+								<a href={templ.SafeURL("/workouts/" + strconv.FormatInt(workout.ID, 10))} class="flex justify-between hover:bg-gray-50 p-2 rounded -m-2">
+									<span class="font-medium">{workout.Date.Format("Jan 02, 2006")}</span>
+									if workout.Notes != "" {
+										<span class="text-gray-600 text-sm truncate max-w-xs">{workout.Notes}</span>
+									}
+									<span class="text-blue-600">View →</span>
+								</a>
+							</li>
+						}
+					</ul>
+					<div class="mt-4 text-center">
+						<a href="/workouts" class="text-blue-600 hover:underline">View all workouts</a>
+					</div>
+				}
+			</section>
+
+			<section class="bg-white rounded-lg shadow p-6">
+				<div class="flex justify-between items-center mb-4">
+					<h2 class="text-2xl font-bold">Your Exercises</h2>
+					<a href="/exercises/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+						Add Exercise
+					</a>
+				</div>
+				if len(exercises) == 0 {
+					<p class="text-gray-500">No exercises added yet. Start by adding exercises you want to track!</p>
+				} else {
+					<ul class="space-y-3">
+						for _, exercise := range exercises {
+							<li class="border-b border-gray-200 pb-2 last:border-0">
+								<a href={templ.SafeURL("/exercises/" + strconv.FormatInt(exercise.ID, 10))} class="hover:bg-gray-50 p-2 rounded -m-2 block">
+									<div class="flex justify-between">
+										<span class="font-medium">{exercise.Name}</span>
+										<span class="text-blue-600">Details →</span>
+									</div>
+									if exercise.Description != "" {
+										<p class="text-gray-600 text-sm truncate">{exercise.Description}</p>
+									}
+								</a>
+							</li>
+						}
+					</ul>
+					<div class="mt-4 text-center">
+						<a href="/exercises" class="text-blue-600 hover:underline">View all exercises</a>
+					</div>
+				}
+			</section>
+		</div>
+
+		<div class="mt-8 bg-white rounded-lg shadow p-6">
+			<h2 class="text-2xl font-bold mb-4">Progress Overview</h2>
+			if len(exercises) == 0 {
+				<p class="text-gray-500">Add exercises and log workouts to see your progress charts here!</p>
+			} else {
+				<div>
+					<select id="chart-exercise-selector" class="border rounded p-2 mb-4">
+						for _, exercise := range exercises {
+							<option value={strconv.FormatInt(exercise.ID, 10)}>{exercise.Name}</option>
+						}
+					</select>
+					<div class="h-64">
+						<canvas id="progress-chart"></canvas>
+					</div>
+					<p id="chart-no-data" class="text-center text-gray-500 hidden">No data available for this exercise yet.</p>
+				</div>
+			}
+		</div>
+	}
+}

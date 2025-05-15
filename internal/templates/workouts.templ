@@ -1,0 +1,505 @@
+package templates
+
+import (
+	"github.com/user/wltrak/internal/models"
+	"strconv"
+)
+
+templ WorkoutList(workouts []models.Workout) {
+	@Layout("Workouts") {
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-2xl font-bold">Your Workouts</h1>
+				<a href="/workouts/new" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+					Add Workout
+				</a>
+			</div>
+
+			if len(workouts) == 0 {
+				<div class="text-center py-8">
+					<p class="text-gray-500 mb-4">You haven't logged any workouts yet.</p>
+					<p class="text-gray-500">Start tracking your progress by adding your first workout!</p>
+				</div>
+			} else {
+				<div class="overflow-x-auto">
+					<table class="w-full table-auto">
+						<thead class="bg-gray-50">
+							<tr>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Notes</th>
+								<th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exercises</th>
+								<th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-gray-200">
+							for _, workout := range workouts {
+								<tr class="hover:bg-gray-50">
+									<td class="px-6 py-4 whitespace-nowrap">
+										<a href={templ.SafeURL("/workouts/" + strconv.FormatInt(workout.ID, 10))} class="text-blue-600 hover:underline font-medium">
+											{workout.Date.Format("Jan 02, 2006")}
+										</a>
+									</td>
+									<td class="px-6 py-4">
+										<p class="text-gray-600 truncate max-w-xs">{workout.Notes}</p>
+									</td>
+									<td class="px-6 py-4" hx-get={"/api/workouts/" + strconv.FormatInt(workout.ID, 10) + "/exercise-count"} hx-trigger="load">
+										<div class="animate-pulse bg-gray-200 h-6 w-16 rounded"></div>
+									</td>
+									<td class="px-6 py-4 text-right">
+										<a href={templ.SafeURL("/workouts/" + strconv.FormatInt(workout.ID, 10))} class="text-blue-600 hover:underline mr-4">View</a>
+										<button hx-delete={"/api/workouts/" + strconv.FormatInt(workout.ID, 10)} 
+												hx-confirm="Are you sure you want to delete this workout?" 
+												hx-target="closest tr" 
+												hx-swap="outerHTML"
+												class="text-red-600 hover:underline">
+											Delete
+										</button>
+									</td>
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	}
+}
+
+templ WorkoutForm(exercises []models.Exercise) {
+	@Layout("New Workout") {
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold">Record New Workout</h1>
+			</div>
+
+			<form id="workout-form" 
+				hx-post="/api/workouts" 
+				hx-target="#form-feedback" 
+				hx-swap="outerHTML" 
+				class="space-y-6">
+				
+				<div id="form-feedback"></div>
+				<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+					<div class="flex">
+						<div class="flex-shrink-0">
+							<svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+								<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clip-rule="evenodd" />
+							</svg>
+						</div>
+						<div class="ml-3">
+							<p class="text-sm text-yellow-700">
+								Your 1RM will automatically be updated based on your heaviest sets during workouts.
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<div>
+					<label for="date" class="block text-sm font-medium text-gray-700 mb-1">Workout Date</label>
+					<input type="date" 
+						name="date" 
+						id="date" 
+						required 
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+				</div>
+
+				<div>
+					<label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+					<textarea 
+						name="notes" 
+						id="notes" 
+						rows="3" 
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+						placeholder="How was your workout today?"></textarea>
+				</div>
+
+				<div>
+					<h2 class="text-lg font-medium mb-3">Exercises</h2>
+					<div id="exercise-list" class="space-y-6">
+						<div class="exercise-entry border p-4 rounded-md bg-gray-50">
+							<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Exercise</label>
+									<select name="exercise_id[]" required class="exercise-select w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+										<option value="">Select an exercise</option>
+										for _, ex := range exercises {
+											<option value={strconv.FormatInt(ex.ID, 10)}>{ex.Name}</option>
+										}
+									</select>
+								</div>
+								<div>
+									<label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+									<input type="text" 
+										name="exercise_notes[]" 
+										class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+										placeholder="Optional notes for this exercise"/>
+								</div>
+							</div>
+
+							<div>
+								<h3 class="text-md font-medium mb-2">Sets</h3>
+								<div class="set-range-container space-y-5">
+									<div class="set-range border border-gray-200 rounded p-3">
+										<div class="grid grid-cols-2 gap-3 mb-3">
+											<div>
+												<label class="block text-xs font-medium text-gray-700 mb-1">Sets (range)</label>
+												<div class="flex items-center gap-2">
+													<input type="number" name="set_start[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+													<span class="text-gray-500">to</span>
+													<input type="number" name="set_end[]" required min="1" value="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+												</div>
+											</div>
+											<div>
+												<label class="block text-xs font-medium text-gray-700 mb-1">Total Sets</label>
+												<div class="text-sm bg-gray-100 py-2 px-3 rounded text-gray-700 mt-1 h-10 flex items-center">
+													<span class="sets-count">3</span> sets
+												</div>
+											</div>
+										</div>
+										<div class="grid grid-cols-3 gap-3">
+											<div>
+												<label class="block text-xs font-medium text-gray-700 mb-1">Reps</label>
+												<input type="number" name="reps[]" required min="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+											</div>
+											<div>
+												<label class="block text-xs font-medium text-gray-700 mb-1">% of 1RM</label>
+												<input type="number" name="percentage[]" min="0" max="100" step="5" class="percentage-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+											</div>
+											<div>
+												<label class="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</label>
+												<input type="number" name="weight[]" required min="0" step="5" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+											</div>
+										</div>
+										<div class="mt-2 flex justify-end">
+											<button type="button" class="remove-set-range text-red-600 text-sm hover:underline flex items-center">
+												<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+													<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+												</svg>
+												Remove
+											</button>
+										</div>
+									</div>
+								</div>
+								<button type="button" class="add-set-range mt-2 text-blue-600 text-sm hover:underline flex items-center">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+									</svg>
+									Add Another Set Range
+								</button>
+							</div>
+							
+							<hr class="my-4"/>
+							
+							<div class="flex justify-end">
+								<button type="button" class="remove-exercise text-red-600 text-sm hover:underline flex items-center">
+									<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+									</svg>
+									Remove Exercise
+								</button>
+							</div>
+						</div>
+					</div>
+					
+					<button type="button" id="add-exercise" class="mt-4 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+						+ Add Another Exercise
+					</button>
+				</div>
+
+				<div class="flex justify-end space-x-3 mt-6 pt-6 border-t">
+					<a href="/workouts" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+						Cancel
+					</a>
+					<button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+						Save Workout
+					</button>
+				</div>
+			</form>
+		</div>
+	}
+}
+
+templ WorkoutEditForm(workout models.WorkoutWithExercises, allExercises []models.Exercise) {
+	@Layout("Edit Workout") {
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="mb-6">
+				<h1 class="text-2xl font-bold">Edit Workout</h1>
+			</div>
+
+			<form id="workout-form" 
+				hx-put={"/api/workouts/" + strconv.FormatInt(workout.Workout.ID, 10)}
+				hx-target="#form-feedback" 
+				hx-swap="outerHTML" 
+				class="space-y-6">
+				
+				<div id="form-feedback"></div>
+				<div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-4">
+					<div class="flex">
+						<div class="flex-shrink-0">
+							<svg class="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+								<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2h-1V9z" clip-rule="evenodd" />
+							</svg>
+						</div>
+						<div class="ml-3">
+							<p class="text-sm text-yellow-700">
+								Your 1RM will automatically be updated based on your heaviest sets during workouts.
+							</p>
+						</div>
+					</div>
+				</div>
+
+				<div>
+					<label for="date" class="block text-sm font-medium text-gray-700 mb-1">Workout Date</label>
+					<input type="date" 
+						name="date" 
+						id="date"
+						value={workout.Workout.Date.Format("2006-01-02")}
+						required 
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+				</div>
+
+				<div>
+					<label for="notes" class="block text-sm font-medium text-gray-700 mb-1">Notes (Optional)</label>
+					<textarea 
+						name="notes" 
+						id="notes" 
+						rows="3" 
+						class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+						placeholder="How was your workout today?">{workout.Workout.Notes}</textarea>
+				</div>
+
+				<div>
+					<h2 class="text-lg font-medium mb-3">Exercises</h2>
+					<div id="exercise-list" class="space-y-6">
+						for _, exerciseData := range workout.Exercises {
+							<div class="exercise-entry border p-4 rounded-md bg-gray-50" data-exercise-id={strconv.FormatInt(exerciseData.Exercise.ID, 10)}>
+								<input type="hidden" name="existing_workout_exercise_id[]" value={strconv.FormatInt(exerciseData.WorkoutExercise.ID, 10)} />
+								<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+									<div>
+										<label class="block text-sm font-medium text-gray-700 mb-1">Exercise</label>
+										<select name="exercise_id[]" required class="exercise-select w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+											for _, ex := range allExercises {
+												<option value={strconv.FormatInt(ex.ID, 10)} selected?={ex.ID == exerciseData.Exercise.ID}>{ex.Name}</option>
+											}
+										</select>
+									</div>
+									<div>
+										<label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+										<input type="text" 
+											name="exercise_notes[]" 
+											value={exerciseData.WorkoutExercise.Notes}
+											class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500" 
+											placeholder="Optional notes for this exercise"/>
+									</div>
+								</div>
+
+								<div>
+									<h3 class="text-md font-medium mb-2">Sets</h3>
+									<div class="set-range-container space-y-5">
+										if len(exerciseData.Sets) == 0 {
+											<div class="set-range border border-gray-200 rounded p-3">
+												<div class="grid grid-cols-2 gap-3 mb-3">
+													<div>
+														<label class="block text-xs font-medium text-gray-700 mb-1">Sets (range)</label>
+														<div class="flex items-center gap-2">
+															<input type="number" name="set_start[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+															<span class="text-gray-500">to</span>
+															<input type="number" name="set_end[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+														</div>
+													</div>
+													<div>
+														<label class="block text-xs font-medium text-gray-700 mb-1">Total Sets</label>
+														<div class="text-sm bg-gray-100 py-2 px-3 rounded text-gray-700 mt-1 h-10 flex items-center">
+															<span class="sets-count">1</span> sets
+														</div>
+													</div>
+												</div>
+												<div class="grid grid-cols-3 gap-3">
+													<div>
+														<label class="block text-xs font-medium text-gray-700 mb-1">Reps</label>
+														<input type="number" name="reps[]" required min="1" value="5" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+													</div>
+													<div>
+														<label class="block text-xs font-medium text-gray-700 mb-1">% of 1RM</label>
+														<input type="number" name="percentage[]" min="0" max="100" step="5" value="75" class="percentage-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+													</div>
+													<div>
+														<label class="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</label>
+														<input type="number" name="weight[]" required min="0" step="5" value="60" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+														<div class="text-xs text-gray-600 italic mt-1">Heavy sets may update your 1RM</div>
+													</div>
+												</div>
+												<div class="mt-2 flex justify-end">
+													<button type="button" class="remove-set-range text-red-600 text-sm hover:underline flex items-center">
+														<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+														</svg>
+														Remove
+													</button>
+												</div>
+											</div>
+										} else {
+											<div class="set-range border border-gray-200 rounded p-3">
+											<div class="grid grid-cols-2 gap-3 mb-3">
+												<div>
+													<label class="block text-xs font-medium text-gray-700 mb-1">Sets (range)</label>
+													<div class="flex items-center gap-2">
+														<input type="number" name="set_start[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+														<span class="text-gray-500">to</span>
+														<input type="number" name="set_end[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+													</div>
+												</div>
+												<div>
+													<label class="block text-xs font-medium text-gray-700 mb-1">Total Sets</label>
+													<div class="text-sm bg-gray-100 py-2 px-3 rounded text-gray-700 mt-1 h-10 flex items-center">
+														<span class="sets-count">1</span> sets
+													</div>
+												</div>
+											</div>
+											<div class="grid grid-cols-3 gap-3">
+												<div>
+													<label class="block text-xs font-medium text-gray-700 mb-1">Reps</label>
+													<input type="number" name="reps[]" required min="1" value={strconv.Itoa(exerciseData.Sets[0].Reps)} class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+												</div>
+												<div>
+													<label class="block text-xs font-medium text-gray-700 mb-1">% of 1RM</label>
+													<input type="number" name="percentage[]" min="0" max="100" step="5" value={strconv.Itoa(int(exerciseData.Sets[0].PercentageOfMax))} class="percentage-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+												</div>
+												<div>
+													<label class="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</label>
+													<input type="number" name="weight[]" required min="0" step="5" value={strconv.FormatFloat(exerciseData.Sets[0].Weight, 'f', 0, 64)} class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+													<div class="text-xs text-gray-600 italic mt-1">Heavy sets may update your 1RM</div>
+												</div>
+											</div>
+											<div class="mt-2 flex justify-end">
+												<button type="button" class="remove-set-range text-red-600 text-sm hover:underline flex items-center">
+													<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+														<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+													</svg>
+													Remove
+												</button>
+											</div>
+										</div>
+										}
+									</div>
+									<button type="button" class="add-set-range mt-2 text-blue-600 text-sm hover:underline flex items-center">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+										</svg>
+										Add Another Set Range
+									</button>
+								</div>
+								
+								<hr class="my-4"/>
+								
+								<div class="flex justify-end">
+									<button type="button" class="remove-exercise text-red-600 text-sm hover:underline flex items-center">
+										<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+										</svg>
+										Remove Exercise
+									</button>
+								</div>
+							</div>
+						}
+					</div>
+					
+					<button type="button" id="add-exercise" class="mt-4 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+						+ Add Another Exercise
+					</button>
+				</div>
+
+				<div class="flex justify-end space-x-3 mt-6 pt-6 border-t">
+					<a href={templ.SafeURL("/workouts/" + strconv.FormatInt(workout.Workout.ID, 10))} class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50">
+						Cancel
+					</a>
+					<button type="submit" class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+						Update Workout
+					</button>
+				</div>
+			</form>
+		</div>
+	}
+}
+
+templ WorkoutDetail(workout models.WorkoutWithExercises) {
+	@Layout("Workout Details") {
+		<div class="bg-white rounded-lg shadow p-6">
+			<div class="flex justify-between items-center mb-6">
+				<h1 class="text-2xl font-bold">Workout on {workout.Workout.Date.Format("January 2, 2006")}</h1>
+				<div class="space-x-3">
+					<a href={templ.SafeURL("/workouts/" + strconv.FormatInt(workout.Workout.ID, 10) + "/edit")} 
+						class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded mr-2">
+						Edit Workout
+					</a>
+					<button
+						hx-delete={"/api/workouts/" + strconv.FormatInt(workout.Workout.ID, 10)}
+						hx-confirm="Are you sure you want to delete this workout?"
+						hx-target="body"
+						hx-push-url="/workouts"
+						class="text-red-600 hover:underline">
+						Delete Workout
+					</button>
+				</div>
+			</div>
+			
+			if workout.Workout.Notes != "" {
+				<div class="mb-6 bg-gray-50 p-4 rounded">
+					<h2 class="text-sm font-medium text-gray-500">Notes</h2>
+					<p class="text-gray-900">{workout.Workout.Notes}</p>
+				</div>
+			}
+			
+			<div class="mb-6">
+				<h2 class="text-lg font-medium mb-4">Exercises</h2>
+				
+				for _, exercise := range workout.Exercises {
+					<div class="mb-8 border rounded-lg overflow-hidden">
+						<div class="bg-gray-100 px-4 py-3 flex justify-between items-center">
+							<h3 class="font-medium">{exercise.Exercise.Name}</h3>
+							if exercise.WorkoutExercise.Notes != "" {
+								<span class="text-sm text-gray-600">{exercise.WorkoutExercise.Notes}</span>
+							}
+						</div>
+						<div class="p-4">
+							<table class="min-w-full divide-y divide-gray-200">
+								<thead class="bg-gray-50">
+									<tr>
+										<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Sets</th>
+										<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Reps</th>
+										<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (kg)</th>
+										<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">% of 1RM</th>
+									</tr>
+								</thead>
+								<tbody class="bg-white divide-y divide-gray-200">
+									if len(exercise.Sets) == 0 {
+										<tr>
+											<td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No sets recorded</td>
+										</tr>
+									} else {
+										for _, set := range exercise.Sets {
+											<tr>
+												<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{set.SetOrder}</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{set.Reps}</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{set.Weight}</td>
+												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+													if set.PercentageOfMax > 0 {
+														{set.PercentageOfMax}%
+													} else {
+														-
+													}
+												</td>
+											</tr>
+										}
+									}
+								</tbody>
+							</table>
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+}
+
+// ExerciseCount is defined in components.templ

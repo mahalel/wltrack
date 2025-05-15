@@ -1,0 +1,14 @@
+**/.git
+**/README.md
+**/.gitignore
+bin/
+.github/
+.envrc
+Dockerfile
+.dockerignore
+*.md
+justfile
+scripts/
+**/*.test.go
+**/.idea
+**/.vscode

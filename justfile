@@ -1,0 +1,89 @@
+# WLTrak commands
+#
+# Directory Structure Notes:
+# - Static assets are stored in the 'static' directory
+
+# Default command runs generation and build
+default: clean generate build
+
+# Generate templ files
+generate:
+    @echo "Generating templ files..."
+    templ generate
+
+# Build the Go application locally
+build: generate
+    @echo "Building Go binary..."
+    mkdir -p bin
+    CGO_ENABLED=1 go build -o bin/server ./cmd/server
+
+# Run the application locally
+run: build
+    @echo "Running application..."
+    ENV=development ./bin/server
+
+# Build container using Docker (for cross-compilation with CGO support)
+build-docker: clean generate
+    @echo "Building container with Docker for cross-compilation with CGO..."
+    docker buildx build --platform linux/amd64 -t wltrak:latest .
+    @echo "Container built successfully as 'wltrak:latest'"
+
+
+# Run the application in a Docker container
+# This passes the host OS environment variables to the container
+run-docker: build-docker
+    @echo "Running container built with Docker..."
+    docker run -p 8080:8080 \
+        -e TURSO_URL \
+        -e TURSO_AUTH_TOKEN \
+        -e PORT="8080" \
+        -e ENV="development" \
+        wltrak:latest
+
+# Run tests
+test:
+    @echo "Running tests..."
+    go test -v ./...
+
+# Clean build artifacts
+clean:
+    @echo "Cleaning build artifacts..."
+    rm -rf bin/*
+    find . -type f -name '*_templ.go' -delete
+    @echo "Note: This doesn't remove the static files - they're shared between dev and container"
+
+# Lint the code
+lint:
+    @echo "Linting code..."
+    golangci-lint run
+
+# Setup development environment
+setup:
+    @echo "Setting up development environment..."
+    go mod download
+    go install github.com/a-h/templ/cmd/templ@latest
+    mkdir -p bin
+
+# Show environment variables loaded from the OS
+show-env:
+    @echo "Current Environment Variables:"
+    @echo "TURSO_URL is $(if [ -n "${TURSO_URL:-}" ]; then echo "set"; else echo "not set"; fi)"
+    @echo "TURSO_AUTH_TOKEN is $(if [ -n "${TURSO_AUTH_TOKEN:-}" ]; then echo "set"; else echo "not set"; fi)"
+
+
+# Help message (default if no command specified)
+help:
+    @echo "WLTrak Justfile commands:"
+    @echo "  just              - Clean, generate, and build"
+    @echo "  just generate     - Generate templ files"
+    @echo "  just build        - Build the Go application (with CGO enabled for SQLite)"
+    @echo "  just build-docker - Build container with Docker (for cross-compilation)"
+    @echo "  just run          - Run the application locally in development mode"
+    @echo "  just run-docker   - Run the application in Docker container (uses OS environment variables)"
+    @echo "  just deploy       - Deploy to Azure Container App"
+    @echo "  just test         - Run tests"
+    @echo "  just clean        - Clean build artifacts"
+    @echo "  just lint         - Lint the code"
+    @echo "  just setup        - Setup development environment"
+    @echo "  just show-env     - Show current OS environment variables"
+    @echo "  just help         - Show this help"
