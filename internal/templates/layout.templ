@@ -1,39 +1,71 @@
 package templates
 
+import (
+	"context"
+	"github.com/google/go-github/v58/github"
+)
+
+// Get user from context if authenticated
+func getUserFromContext(ctx context.Context) *github.User {
+	if user, ok := ctx.Value("github_user").(*github.User); ok {
+		return user
+	}
+	return nil
+}
+
+// AuthStatusComponent renders the authentication status component
+templ AuthStatusComponent() {
+	<div class="flex items-center gap-2">
+		if getUserFromContext(ctx) != nil {
+			<span class="text-sm text-white">
+				Hi, { getUserFromContext(ctx).GetLogin() }!
+			</span>
+			<a href="/logout" class="text-sm text-white hover:text-gray-200 hover:underline">
+				Logout
+			</a>
+		} else {
+			<a href="/auth/github/login" class="text-sm text-white hover:text-gray-200 hover:underline">
+				Login
+			</a>
+		}
+	</div>
+}
+
 templ Layout(title string) {
 	<!DOCTYPE html>
 	<html lang="en">
-	<head>
-		<meta charset="UTF-8"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-		<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-		<meta http-equiv="Pragma" content="no-cache"/>
-		<meta http-equiv="Expires" content="0"/>
-		<title>{ title } - WLTrak</title>
-		<link rel="stylesheet" href="/static/css/styles.css"/>
-		<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
-		<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-		<script defer src="/static/js/main.js"></script>
-	</head>
-	<body class="bg-gray-100 font-sans">
-		<header class="bg-blue-700 text-white shadow">
-			<nav class="container mx-auto px-4 py-3 flex justify-between items-center">
-				<a href="/" class="text-xl font-bold">WLTrak</a>
-				<div class="space-x-4">
-					<a href="/" class="hover:underline">Dashboard</a>
-					<a href="/exercises" class="hover:underline">Exercises</a>
-					<a href="/workouts" class="hover:underline">Workouts</a>
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+			<meta http-equiv="Pragma" content="no-cache"/>
+			<meta http-equiv="Expires" content="0"/>
+			<title>{ title } - WLTrak</title>
+			<link rel="stylesheet" href="/static/css/styles.css"/>
+			<script src="https://unpkg.com/htmx.org@1.9.10" integrity="sha384-D1Kt99CQMDuVetoL1lrYwg5t+9QdHe7NLX/SoJYkXDFfX37iInKRy5xLSi8nO7UC" crossorigin="anonymous"></script>
+			<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+			<script defer src="/static/js/main.js"></script>
+		</head>
+		<body class="bg-gray-100 font-sans">
+			<header class="bg-blue-700 text-white shadow">
+				<nav class="container mx-auto px-4 py-3 flex justify-between items-center">
+					<a href="/" class="text-xl font-bold">WLTrak</a>
+					<div class="flex items-center space-x-4">
+						<a href="/" class="hover:underline">Dashboard</a>
+						<a href="/exercises" class="hover:underline">Exercises</a>
+						<a href="/workouts" class="hover:underline">Workouts</a>
+						@AuthStatusComponent()
+					</div>
+				</nav>
+			</header>
+			<main class="container mx-auto px-4 py-6">
+				{ children... }
+			</main>
+			<footer class="bg-gray-200 text-gray-600 py-4">
+				<div class="container mx-auto px-4 text-center">
+					<p>&copy; 2025 WLTrak - Track Your Weightlifting Progress</p>
 				</div>
-			</nav>
-		</header>
-		<main class="container mx-auto px-4 py-6">
-			{ children... }
-		</main>
-		<footer class="bg-gray-200 text-gray-600 py-4">
-			<div class="container mx-auto px-4 text-center">
-				<p>&copy; 2023 WLTrak - Track Your Weightlifting Progress</p>
-			</div>
-		</footer>
-	</body>
+			</footer>
+		</body>
 	</html>
 }

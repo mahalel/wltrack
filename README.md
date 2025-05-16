@@ -9,6 +9,7 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 - Visualize progress with graphs for each exercise
 - Responsive design with HTMX for dynamic interactions
 - Secure token management
+- GitHub App authentication
 
 ## Tech Stack
 
@@ -149,14 +150,17 @@ Note: The project can also be published to GitHub Container Registry (GHCR) usin
 ├── cmd
 │   └── server          # Main application entry point
 ├── internal
+│   ├── auth            # Authentication functionality
 │   ├── config          # Application configuration
 │   ├── database        # Database interactions
 │   ├── handlers        # HTTP handlers
 │   ├── models          # Data models
 │   └── templates       # templ templates
+│       └── auth        # Authentication templates
 ├── static              # Static files for both local development and container
 │   ├── css             # Stylesheets
 │   └── js              # JavaScript files
+├── docs                # Documentation
 ├── .github/workflows   # GitHub Actions CI/CD workflows
 ├── Dockerfile          # Docker build configuration
 └── justfile            # Command runner for development tasks
@@ -170,6 +174,16 @@ The application reads the following environment variables directly from the OS:
 - `TURSO_AUTH_TOKEN`: Your Turso auth token (required)
 - `PORT`: Server port (defaults to 8080)
 - `ENV`: Environment name (defaults to "development")
+
+### Authentication Environment Variables
+
+Optional GitHub App authentication configuration:
+
+- `AUTH_ENABLED`: Set to "true" to enable authentication (default: false)
+- `GITHUB_CLIENT_ID`: Your GitHub App client ID
+- `GITHUB_CLIENT_SECRET`: Your GitHub App client secret
+- `GITHUB_REDIRECT_URL`: OAuth callback URL (e.g., http://localhost:8080/auth/github/callback)
+- `ALLOWED_GITHUB_USERS`: Comma-separated list of GitHub usernames allowed to access the app
 
 You can check your current environment setup with:
 
@@ -195,3 +209,14 @@ just run-docker
 # Show current environment variables
 just show-env
 ```
+
+## Authentication with GitHub App
+
+WLTrak supports authentication using GitHub Apps for user login. To set up GitHub App authentication:
+
+1. Create a GitHub App in your GitHub account settings
+2. Configure the OAuth settings for the app
+3. Set the environment variables for authentication (including allowed GitHub usernames)
+4. Run the application with authentication enabled
+
+For detailed setup instructions, see [GitHub App Authentication](docs/github-app-auth.md).

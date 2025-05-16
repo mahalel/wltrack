@@ -94,10 +94,28 @@ func main() {
 	mux.HandleFunc("DELETE /api/workouts/{id}", handlers.DeleteWorkoutHandler(db))
 	mux.HandleFunc("GET /api/workouts/{id}/exercise-count", handlers.GetExerciseCountHandler(db))
 
+	// Health check endpoints
+	mux.HandleFunc("GET /health/ready", handlers.HealthReadyHandler())
+	mux.HandleFunc("GET /health/live", handlers.HealthLiveHandler())
+
 	// Register NotFoundHandler as the default handler for any unmatched patterns
 	mux.Handle("/", http.HandlerFunc(handlers.NotFoundHandler()))
 
-	// Create a middleware for CORS headers and HX-Redirect handling
+	// Initialize GitHub App authentication if enabled
+	log.Printf("Starting GitHub App authentication initialization, enabled=%v", cfg.AuthEnabled)
+	if err := handlers.InitGitHubAuth(cfg); err != nil {
+		log.Printf("Warning: Failed to initialize GitHub authentication: %v", err)
+	} else {
+		log.Printf("GitHub App authentication initialized successfully")
+	}
+	
+	// Add authentication routes
+	mux.HandleFunc("GET /login", handlers.LoginPageHandler())
+	mux.HandleFunc("GET /auth/github/login", handlers.GitHubLoginHandler())
+	mux.HandleFunc("GET /auth/github/callback", handlers.GitHubCallbackHandler())
+	mux.HandleFunc("GET /logout", handlers.LogoutHandler())
+
+	// Create middleware chain with CORS headers and authentication
 	corsMiddleware := func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Set CORS headers
@@ -116,11 +134,14 @@ func main() {
 			next.ServeHTTP(w, r)
 		})
 	}
+	
+	// Apply the GitHub auth middleware if enabled
+	authMiddleware := handlers.GithubAuthMiddleware()
 
-	// Create the server
+	// Create the server with middleware chain
 	server := &http.Server{
 		Addr:    ":" + cfg.Port,
-		Handler: corsMiddleware(mux),
+		Handler: corsMiddleware(authMiddleware(mux)),
 	}
 
 	// Start the server in a goroutine

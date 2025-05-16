@@ -3,14 +3,25 @@ package config
 import (
 	"log"
 	"os"
+	"strconv"
+	"strings"
 )
 
 // Config holds the application configuration
 type Config struct {
-	TursoURL      string
-	TursoAuthToken string
-	Port          string
-	Environment   string
+	TursoURL         string
+	TursoAuthToken   string
+	Port             string
+	Environment      string
+	
+	// GitHub App Authentication
+	GithubClientID     string
+	GithubClientSecret string
+	GithubRedirectURL  string
+	AllowedGithubUsers []string
+	
+	// Authentication enabled flag
+	AuthEnabled       bool
 }
 
 // Load loads configuration from environment variables
@@ -20,6 +31,15 @@ func Load() Config {
 		TursoAuthToken: getEnv("TURSO_AUTH_TOKEN", ""),
 		Port:          getEnv("PORT", "8080"),
 		Environment:   getEnv("ENV", "development"),
+		
+		// GitHub App Authentication
+		GithubClientID:     getEnv("GITHUB_CLIENT_ID", ""),
+		GithubClientSecret: getEnv("GITHUB_CLIENT_SECRET", ""),
+		GithubRedirectURL:  getEnv("GITHUB_REDIRECT_URL", ""),
+		AllowedGithubUsers: getStringSliceEnv("ALLOWED_GITHUB_USERS", nil),
+		
+		// Authentication enabled flag
+		AuthEnabled:       getBoolEnv("AUTH_ENABLED", false),
 	}
 
 	if cfg.TursoURL == "" {
@@ -41,4 +61,51 @@ func getEnv(key, defaultValue string) string {
 		return defaultValue
 	}
 	return value
+}
+
+// getInt64Env gets an int64 environment variable or returns a default value
+func getInt64Env(key string, defaultValue int64) int64 {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	
+	intValue, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		log.Printf("Warning: Could not parse %s as int64: %v", key, err)
+		return defaultValue
+	}
+	
+	return intValue
+}
+
+// getBoolEnv gets a bool environment variable or returns a default value
+func getBoolEnv(key string, defaultValue bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	
+	boolValue, err := strconv.ParseBool(value)
+	if err != nil {
+		log.Printf("Warning: Could not parse %s as bool: %v", key, err)
+		return defaultValue
+	}
+	
+	return boolValue
+}
+
+// getStringSliceEnv gets a comma-separated string slice from environment or returns default
+func getStringSliceEnv(key string, defaultValue []string) []string {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	
+	values := strings.Split(value, ",")
+	for i := range values {
+		values[i] = strings.TrimSpace(values[i])
+	}
+	
+	return values
 }
