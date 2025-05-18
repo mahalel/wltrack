@@ -5,7 +5,7 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 ## Features
 
 - Record daily weightlifting results (sets, reps, weight, percentage of 1RM)
-- Store data in a Turso database
+- Store data in a Turso database (or local sqlite)
 - Visualize progress with graphs for each exercise
 - Responsive design with HTMX for dynamic interactions
 - Secure token management
@@ -34,7 +34,7 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/wltrak.git
+   git clone https://github.com/mahalel/wltrak.git
    cd wltrak
    ```
 
@@ -85,16 +85,16 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
    ```
    # Generate templ files
    just generate
-   
+
    # Build locally
    just build
-   
+
    # Build with Docker (supports cross-compilation for linux/amd64)
    just build-docker
-   
+
    # Run the container (uses OS environment variables)
    just run-docker
-   
+
    # Show available commands
    just help
    ```
