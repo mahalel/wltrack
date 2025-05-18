@@ -13,6 +13,8 @@ generate:
 
 # Build the Go application locally
 build: generate
+    @echo "Building Tailwind CSS..."
+    npm run minify:css
     @echo "Building Go binary..."
     mkdir -p bin
     CGO_ENABLED=1 go build -o bin/server ./cmd/server
@@ -21,6 +23,11 @@ build: generate
 run: build
     @echo "Running application..."
     ENV=development ./bin/server
+
+# Run in development mode with Tailwind CSS watcher
+dev: generate
+    @echo "Running in development mode with Tailwind CSS watcher..."
+    npm run dev
 
 # Build container using Docker (for cross-compilation with CGO support)
 build-docker: clean generate
@@ -62,6 +69,7 @@ setup:
     @echo "Setting up development environment..."
     go mod download
     go install github.com/a-h/templ/cmd/templ@latest
+    npm install
     mkdir -p bin
 
 # Show environment variables loaded from the OS
@@ -81,9 +89,10 @@ help:
     @echo "WLTrak Justfile commands:"
     @echo "  just              - Clean, generate, and build"
     @echo "  just generate     - Generate templ files"
-    @echo "  just build        - Build the Go application (with CGO enabled for SQLite)"
+    @echo "  just build        - Build the Go application and Tailwind CSS (with CGO enabled for SQLite)"
     @echo "  just build-docker - Build container with Docker (for cross-compilation)"
     @echo "  just run          - Run the application locally in development mode"
+    @echo "  just dev          - Run in dev mode with live Tailwind CSS reloading"
     @echo "  just run-docker   - Run the application in Docker container (uses OS environment variables)"
     @echo "  just deploy       - Deploy to Azure Container App"
     @echo "  just test         - Run tests"

@@ -2,14 +2,15 @@
 FROM golang:1.24-alpine AS builder
 
 # Install build dependencies in a single layer
-RUN apk add --no-cache gcc musl-dev git
+RUN apk add --no-cache gcc musl-dev git nodejs npm
 
 # Set working directory
 WORKDIR /app
 
-# Copy go.mod and go.sum first for better caching
-COPY go.mod go.sum ./
+# Copy go.mod, go.sum, and package.json files first for better caching
+COPY go.mod go.sum package.json package-lock.json ./
 RUN go mod download
+RUN npm install
 
 # Install templ before copying the rest of the files for better caching
 RUN go install github.com/a-h/templ/cmd/templ@latest
@@ -21,6 +22,10 @@ RUN templ generate
 # Copy the rest of the application source code
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
+COPY src/ ./src/
+
+# Build Tailwind CSS
+RUN npm run minify:css
 
 # Build the application with CGO enabled and optimized flags
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \

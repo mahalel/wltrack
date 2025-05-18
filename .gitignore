@@ -41,6 +41,10 @@ Thumbs.db
 /build
 /dist
 
+# Generated CSS files
+static/css/tailwind.css
+static/css/tailwind.min.css
+
 # Log files
 *.log
 .envrc
@@ -48,3 +52,4 @@ Thumbs.db
 # SQLite database files
 *.db
 data/
+node_modules

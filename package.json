@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "tailwindcss": "^3.3.5"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -i ./src/input.css -o ./static/css/tailwind.css",
+    "watch:css": "tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --watch",
+    "minify:css": "tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --minify",
+    "dev": "concurrently \"npm run watch:css\" \"go run ./cmd/server\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
