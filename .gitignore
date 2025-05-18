@@ -44,3 +44,7 @@ Thumbs.db
 # Log files
 *.log
 .envrc
+
+# SQLite database files
+*.db
+data/

@@ -46,8 +46,20 @@ func Load() Config {
 		if cfg.Environment == "production" {
 			log.Fatal("TURSO_URL not set")
 		} else {
-			log.Println("TURSO_URL not set, using in-memory SQLite for development")
-			cfg.TursoURL = "file::memory:?cache=shared"
+			log.Println("TURSO_URL not set, using local SQLite database for development")
+			// Create a data directory if it doesn't exist
+			if _, err := os.Stat("data"); os.IsNotExist(err) {
+				err := os.Mkdir("data", 0755)
+				if err != nil {
+					log.Printf("Warning: Could not create data directory: %v", err)
+					log.Println("Using in-memory database as fallback")
+					cfg.TursoURL = "file::memory:?cache=shared"
+				} else {
+					cfg.TursoURL = "file:data/wltrak.db?cache=shared"
+				}
+			} else {
+				cfg.TursoURL = "file:data/wltrak.db?cache=shared"
+			}
 		}
 	}
 

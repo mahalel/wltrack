@@ -6,6 +6,7 @@ import (
 	"math"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/user/wltrak/internal/database"
 	"github.com/user/wltrak/internal/templates"
@@ -579,8 +580,38 @@ func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 				reps = append(reps, set.Reps)
 			}
 			
+			// Parse the date from the query result (we already get the date in GetExerciseHistory)
+			// Format date as "Week W, MMM" (e.g., "Week 32, Aug")
+			var dateStr string
+			
+			// Get all workouts to find the one for this exercise
+			allWorkouts, err := db.GetWorkouts()
+			if err != nil {
+				// Fallback if we can't get the workouts
+				dateStr = strconv.FormatInt(workoutExercise.WorkoutID, 10)
+			} else {
+				// Find the matching workout
+				var workoutDate time.Time
+				for _, w := range allWorkouts {
+					if w.ID == workoutExercise.WorkoutID {
+						workoutDate = w.Date
+						break
+					}
+				}
+				
+				if !workoutDate.IsZero() {
+					// Format as week and month
+					_, week := workoutDate.ISOWeek()
+					monthName := workoutDate.Format("Jan")
+					dateStr = fmt.Sprintf("Week %d, %s", week, monthName)
+				} else {
+					// Fallback to ID if we couldn't find the workout
+					dateStr = strconv.FormatInt(workoutExercise.WorkoutID, 10)
+				}
+			}
+			
 			chartData = append(chartData, ChartData{
-				Date:   strconv.FormatInt(workoutExercise.WorkoutID, 10),
+				Date:   dateStr,
 				Weight: weights,
 				Reps:   reps,
 			})

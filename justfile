@@ -71,6 +71,11 @@ show-env:
     @echo "TURSO_AUTH_TOKEN is $(if [ -n "${TURSO_AUTH_TOKEN:-}" ]; then echo "set"; else echo "not set"; fi)"
 
 
+# Reset the local database (development only)
+reset-db:
+    @echo "Resetting local database..."
+    ./scripts/dev/reset-db.sh
+
 # Help message (default if no command specified)
 help:
     @echo "WLTrak Justfile commands:"
@@ -86,4 +91,5 @@ help:
     @echo "  just lint         - Lint the code"
     @echo "  just setup        - Setup development environment"
     @echo "  just show-env     - Show current OS environment variables"
+    @echo "  just reset-db     - Reset the local development database"
     @echo "  just help         - Show this help"

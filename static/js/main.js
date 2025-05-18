@@ -419,12 +419,36 @@ function setupHomePageChart() {
         if (noDataMessage) noDataMessage.classList.add("hidden");
         if (chartCanvas) chartCanvas.classList.remove("hidden");
 
-        // Process data for the chart
-        const labels = data.map((d) => d.date);
-        const weights = data.map((d) => {
-          const sum = d.weights.reduce((a, b) => a + b, 0);
-          return sum / d.weights.length; // Average weight
+        // Process and sort data for the chart
+        // Create an array of objects with date and metrics
+        let processedData = data.map(d => ({
+          date: d.date,
+          avgWeight: parseFloat((d.weights.reduce((a, b) => a + b, 0) / d.weights.length).toFixed(1)),
+        }));
+      
+        // Sort by date (assuming format "Week W, MMM")
+        processedData.sort((a, b) => {
+          // Extract week number
+          const weekA = parseInt(a.date.match(/Week (\d+)/)?.[1] || '0');
+          const weekB = parseInt(b.date.match(/Week (\d+)/)?.[1] || '0');
+        
+          // Extract month (Jan, Feb, etc)
+          const monthA = a.date.split(', ')[1];
+          const monthB = b.date.split(', ')[1];
+        
+          // First compare by month (rough approximation)
+          const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+          const monthDiff = months.indexOf(monthA) - months.indexOf(monthB);
+        
+          if (monthDiff !== 0) return monthDiff;
+        
+          // If same month, compare by week
+          return weekA - weekB;
         });
+      
+        // Extract sorted values for the chart
+        const labels = processedData.map(d => d.date);
+        const weights = processedData.map(d => d.avgWeight);
 
         // Create or update chart
         if (chart) {
@@ -443,7 +467,9 @@ function setupHomePageChart() {
                   backgroundColor: "rgba(59, 130, 246, 0.2)",
                   borderColor: "rgba(59, 130, 246, 1)",
                   borderWidth: 2,
-                  tension: 0.1,
+                  tension: 0.3,
+                  pointRadius: 4,
+                  pointHoverRadius: 6,
                 },
               ],
             },
@@ -462,6 +488,15 @@ function setupHomePageChart() {
                     display: true,
                     text: "Date",
                   },
+                  ticks: {
+                    maxRotation: 45,
+                    minRotation: 45,
+                    autoSkip: true,
+                    maxTicksLimit: 8,
+                    font: {
+                      size: 10
+                    }
+                  }
                 },
               },
             },
@@ -546,18 +581,46 @@ function setupExerciseDetailChart() {
       if (noDataMessage) noDataMessage.classList.add("hidden");
       if (chartCanvas) chartCanvas.classList.remove("hidden");
 
-      // Process data for the chart
-      const labels = data.map((d) => d.date);
-
-      // Calculate average weight and max weight for each date
-      const avgWeights = data.map((d) => {
-        const sum = d.weights.reduce((a, b) => a + b, 0);
-        return sum / d.weights.length;
+      // Process and sort data for the chart
+      // Create an array of objects with date and metrics
+      let processedData = data.map(d => ({
+        date: d.date,
+        avgWeight: parseFloat((d.weights.reduce((a, b) => a + b, 0) / d.weights.length).toFixed(1)),
+        maxWeight: parseFloat(Math.max(...d.weights).toFixed(1))
+      }));
+      
+      // Sort by date (assuming format "Week W, MMM")
+      processedData.sort((a, b) => {
+        // Extract week number
+        const weekA = parseInt(a.date.match(/Week (\d+)/)?.[1] || '0');
+        const weekB = parseInt(b.date.match(/Week (\d+)/)?.[1] || '0');
+        
+        // Extract month (Jan, Feb, etc)
+        const monthA = a.date.split(', ')[1];
+        const monthB = b.date.split(', ')[1];
+        
+        // First compare by month (rough approximation)
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthDiff = months.indexOf(monthA) - months.indexOf(monthB);
+        
+        if (monthDiff !== 0) return monthDiff;
+        
+        // If same month, compare by week
+        return weekA - weekB;
       });
-
-      const maxWeights = data.map((d) => {
-        return Math.max(...d.weights);
-      });
+      
+      // Reverse order to show oldest first on the X-axis (left to right)
+      processedData.reverse();
+      
+      // Limit to 12 most recent entries for better readability
+      if (processedData.length > 12) {
+        processedData = processedData.slice(processedData.length - 12);
+      }
+      
+      // Extract sorted values for the chart
+      const labels = processedData.map(d => d.date);
+      const avgWeights = processedData.map(d => d.avgWeight);
+      const maxWeights = processedData.map(d => d.maxWeight);
 
       // Create chart
       const chart = new Chart(chartCanvas, {
@@ -571,7 +634,9 @@ function setupExerciseDetailChart() {
               backgroundColor: "rgba(59, 130, 246, 0.2)",
               borderColor: "rgba(59, 130, 246, 1)",
               borderWidth: 2,
-              tension: 0.1,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
             },
             {
               label: "Max Weight",
@@ -579,7 +644,9 @@ function setupExerciseDetailChart() {
               backgroundColor: "rgba(220, 38, 38, 0.2)",
               borderColor: "rgba(220, 38, 38, 1)",
               borderWidth: 2,
-              tension: 0.1,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6,
             },
           ],
         },
@@ -598,6 +665,15 @@ function setupExerciseDetailChart() {
                 display: true,
                 text: "Date",
               },
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45,
+                autoSkip: true,
+                maxTicksLimit: 8,
+                font: {
+                  size: 10
+                }
+              }
             },
           },
         },

@@ -52,10 +52,12 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 
 4. Set environment variables in your OS:
    ```
-   # Set these in your shell
+   # Set these in your shell if you want to use Turso
    export TURSO_URL="libsql://your-database-url.turso.io"
    export TURSO_AUTH_TOKEN="your-token"
    ```
+
+   > Note: If you don't set the TURSO_URL, the application will automatically create and use a local SQLite database in the `data/wltrak.db` file. This is convenient for development and testing. You can delete this file at any time to reset your database.
 
 5. Generate templ files:
    ```
@@ -170,8 +172,8 @@ Note: The project can also be published to GitHub Container Registry (GHCR) usin
 
 The application reads the following environment variables directly from the OS:
 
-- `TURSO_URL`: Your Turso database URL (required)
-- `TURSO_AUTH_TOKEN`: Your Turso auth token (required)
+- `TURSO_URL`: Your Turso database URL (defaults to local SQLite file in development)
+- `TURSO_AUTH_TOKEN`: Your Turso auth token (required only for Turso)
 - `PORT`: Server port (defaults to 8080)
 - `ENV`: Environment name (defaults to "development")
 
