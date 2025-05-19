@@ -43,14 +43,11 @@ func InitGitHubAuth(cfg config.Config) error {
 		AllowedUsers:       cfg.AllowedGithubUsers,
 	}
 
-	// Log GitHub App configuration for debugging
-	fmt.Printf("[DEBUG] Initializing GitHub App login with: ClientID=%s, ClientSecret=%s, RedirectURL=%s, AllowedUsers=%v\n",
-		cfg.GithubClientID, maskSecret(cfg.GithubClientSecret), cfg.GithubRedirectURL, cfg.AllowedGithubUsers)
 	if cfg.GithubClientID == "" {
-		fmt.Println("[ERROR] No GitHub Client ID provided")
+		log.Println("No GitHub Client ID provided")
 	}
 	if cfg.GithubClientSecret == "" {
-		fmt.Println("[ERROR] No GitHub Client Secret provided")
+		log.Println("No GitHub Client Secret provided")
 	}
 
 	var err error
@@ -61,7 +58,6 @@ func InitGitHubAuth(cfg config.Config) error {
 	}
 
 	log.Println("GitHub App authentication initialized successfully")
-	fmt.Println("[DEBUG] Successfully loaded GitHub App authentication")
 	return nil
 }
 
@@ -127,11 +123,9 @@ func LoginPageHandler() http.HandlerFunc {
 		cookie, err := r.Cookie("github_token")
 		if err == nil && cookie.Value != "" {
 			// If already logged in, redirect to home
-			fmt.Println("[DEBUG] User already authenticated, redirecting to home")
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
-		fmt.Println("[DEBUG] User not authenticated, showing login page")
 
 		component := authtmpl.LoginPage()
 		_ = component.Render(r.Context(), w)

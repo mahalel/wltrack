@@ -71,8 +71,6 @@ func main() {
 	mux.HandleFunc("GET /exercises/new", handlers.NewExerciseHandler(db))
 	mux.HandleFunc("GET /exercises/{id}/edit", handlers.EditExerciseHandler(db))
 	mux.HandleFunc("GET /exercises/{id}", handlers.ExerciseDetailHandler(db))
-	// The dedicated 1RM form route is no longer needed as we set 1RM directly in the exercise edit form
-	// mux.HandleFunc("GET /exercises/{id}/1rm/new", handlers.NewOneRepMaxFormHandler())
 
 	// Workouts
 	mux.HandleFunc("GET /workouts", handlers.WorkoutsHandler(db))
@@ -84,8 +82,8 @@ func main() {
 	mux.HandleFunc("POST /api/exercises", handlers.CreateExerciseHandler(db))
 	mux.HandleFunc("PUT /api/exercises/{id}", handlers.UpdateExerciseHandler(db))
 	mux.HandleFunc("DELETE /api/exercises/{id}", handlers.DeleteExerciseHandler(db))
-	// We still need the API endpoint for backward compatibility
-	mux.HandleFunc("POST /api/exercises/{id}/1rm", handlers.SaveOneRepMaxHandler(db))
+	
+	// 1RM endpoints - integrated into the exercise update endpoint
 	mux.HandleFunc("GET /api/exercises/{id}/1rm", handlers.GetOneRepMaxHandler(db))
 	mux.HandleFunc("GET /api/exercises/{id}/history", handlers.GetExerciseHistoryHandler(db))
 
@@ -108,7 +106,7 @@ func main() {
 	} else {
 		log.Printf("GitHub App authentication initialized successfully")
 	}
-	
+
 	// Add authentication routes
 	mux.HandleFunc("GET /login", handlers.LoginPageHandler())
 	mux.HandleFunc("GET /auth/github/login", handlers.GitHubLoginHandler())
@@ -134,7 +132,7 @@ func main() {
 			next.ServeHTTP(w, r)
 		})
 	}
-	
+
 	// Apply the GitHub auth middleware if enabled
 	authMiddleware := handlers.GithubAuthMiddleware()
 

@@ -97,12 +97,7 @@ func ExerciseDetailHandler(db *database.DB) http.HandlerFunc {
 	}
 }
 
-// NewOneRepMaxFormHandler has been kept for backward compatibility but is no longer used
-func NewOneRepMaxFormHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/exercises/"+r.PathValue("id")+"/edit", http.StatusSeeOther)
-	}
-}
+
 
 // CreateExerciseHandler handles the POST /api/exercises route
 func CreateExerciseHandler(db *database.DB) http.HandlerFunc {
@@ -238,61 +233,7 @@ func DeleteExerciseHandler(db *database.DB) http.HandlerFunc {
 	}
 }
 
-// SaveOneRepMaxHandler handles the POST /api/exercises/:id/1rm route
-func SaveOneRepMaxHandler(db *database.DB) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := r.PathValue("id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			if err := templates.FormError("Invalid exercise ID").Render(r.Context(), w); err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			}
-			return
-		}
 
-		err = r.ParseForm()
-		if err != nil {
-			if err := templates.FormError("Failed to parse form data").Render(r.Context(), w); err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			}
-			return
-		}
-
-		weightStr := r.FormValue("weight")
-		if weightStr == "" {
-			if err := templates.FormError("Weight is required").Render(r.Context(), w); err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			}
-			return
-		}
-
-		weight, err := strconv.ParseFloat(weightStr, 64)
-		if err != nil {
-			if err := templates.FormError("Invalid weight value").Render(r.Context(), w); err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			}
-			return
-		}
-
-		_, err = db.SaveOneRepMax(id, weight)
-		if err != nil {
-			if err := templates.FormError("Failed to save one rep max: " + err.Error()).Render(r.Context(), w); err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			}
-			return
-		}
-
-		// Set HX-Redirect to ensure the page refreshes after submission
-		w.Header().Set("HX-Refresh", "true")
-		
-		// Return success message
-		w.WriteHeader(http.StatusOK)
-		fmt.Fprintln(w, "<div class='text-green-600 p-3'>1RM updated successfully! Page will refresh...</div>")
-		
-		// For browsers without HTMX support, add a meta refresh as fallback
-		fmt.Fprintln(w, "<script>setTimeout(function() { window.location.reload(); }, 1000);</script>")
-	}
-}
 
 // GetOneRepMaxHandler handles the GET /api/exercises/:id/1rm route
 func GetOneRepMaxHandler(db *database.DB) http.HandlerFunc {
