@@ -82,7 +82,7 @@ func main() {
 	mux.HandleFunc("POST /api/exercises", handlers.CreateExerciseHandler(db))
 	mux.HandleFunc("PUT /api/exercises/{id}", handlers.UpdateExerciseHandler(db))
 	mux.HandleFunc("DELETE /api/exercises/{id}", handlers.DeleteExerciseHandler(db))
-	
+
 	// 1RM endpoints - integrated into the exercise update endpoint
 	mux.HandleFunc("GET /api/exercises/{id}/1rm", handlers.GetOneRepMaxHandler(db))
 	mux.HandleFunc("GET /api/exercises/{id}/history", handlers.GetExerciseHistoryHandler(db))

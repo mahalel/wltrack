@@ -48,9 +48,20 @@ run-docker: build-docker
         wltrak:latest
 
 # Run tests
-test:
+test: generate
     @echo "Running tests..."
     go test -v ./...
+
+# Run tests with race detection
+test-race: generate
+    @echo "Running tests with race detection..."
+    go test -race -v ./...
+
+# Run tests with coverage report
+test-coverage: generate
+    @echo "Running tests with coverage reporting..."
+    go test -race -coverprofile=coverage.out ./...
+    go tool cover -html=coverage.out
 
 # Clean build artifacts
 clean:
@@ -59,10 +70,14 @@ clean:
     find . -type f -name '*_templ.go' -delete
     @echo "Note: This doesn't remove the static files - they're shared between dev and container"
 
-# Lint the code
+# Format and lint the code
 lint:
+    @echo "Formatting code..."
+    go fmt ./...
+    @echo "Vetting code..."
+    go vet ./...
     @echo "Linting code..."
-    golangci-lint run
+    golangci-lint run ./...
 
 # Setup development environment
 setup:
@@ -84,6 +99,9 @@ reset-db:
     @echo "Resetting local database..."
     ./scripts/dev/reset-db.sh
 
+# Run all checks (format, lint, test)
+check: lint test
+
 # Help message (default if no command specified)
 help:
     @echo "WLTrak Justfile commands:"
@@ -96,8 +114,11 @@ help:
     @echo "  just run-docker   - Run the application in Docker container (uses OS environment variables)"
     @echo "  just deploy       - Deploy to Azure Container App"
     @echo "  just test         - Run tests"
+    @echo "  just test-race    - Run tests with race detection"
+    @echo "  just test-coverage - Run tests with coverage report"
     @echo "  just clean        - Clean build artifacts"
-    @echo "  just lint         - Lint the code"
+    @echo "  just lint         - Format and lint the code"
+    @echo "  just check        - Run all checks (format, lint, test)"
     @echo "  just setup        - Setup development environment"
     @echo "  just show-env     - Show current OS environment variables"
     @echo "  just reset-db     - Reset the local development database"

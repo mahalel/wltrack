@@ -163,8 +163,9 @@ func (app *GitHubApp) Middleware() func(http.Handler) http.Handler {
 				return
 			}
 
-			// Add user to context
-			ctx = context.WithValue(ctx, "github_user", user)
+			// Add user to context using a dedicated type for the key
+			type userContextKey struct{}
+			ctx = context.WithValue(ctx, userContextKey{}, user)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}

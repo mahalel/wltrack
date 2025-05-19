@@ -11,13 +11,7 @@ import (
 	authtmpl "github.com/user/wltrak/internal/templates/auth"
 )
 
-// maskSecret returns a masked version of a secret for logging
-func maskSecret(secret string) string {
-	if len(secret) < 8 {
-		return "***"
-	}
-	return secret[:4] + "..." + secret[len(secret)-4:]
-}
+// Secret masking for logging has been moved to the auth package
 
 // GitHubApp holds the GitHub App authentication instance
 var GitHubApp *auth.GitHubApp
@@ -37,10 +31,10 @@ func InitGitHubAuth(cfg config.Config) error {
 
 	// Configure the GitHub App for user login
 	authConfig := auth.GithubAuthConfig{
-		ClientID:           cfg.GithubClientID,
-		ClientSecret:       cfg.GithubClientSecret,
-		RedirectURL:        cfg.GithubRedirectURL,
-		AllowedUsers:       cfg.AllowedGithubUsers,
+		ClientID:     cfg.GithubClientID,
+		ClientSecret: cfg.GithubClientSecret,
+		RedirectURL:  cfg.GithubRedirectURL,
+		AllowedUsers: cfg.AllowedGithubUsers,
 	}
 
 	if cfg.GithubClientID == "" {
@@ -79,15 +73,15 @@ func GithubAuthMiddleware() func(http.Handler) http.Handler {
 			}
 
 			// Skip authentication for static assets and public paths
-			if r.URL.Path == "/favicon.ico" || 
-			   r.URL.Path == "/robots.txt" ||
-			   r.URL.Path == "/health/ready" ||
-			   r.URL.Path == "/health/live" ||
-			   strings.HasPrefix(r.URL.Path, "/static/") {
+			if r.URL.Path == "/favicon.ico" ||
+				r.URL.Path == "/robots.txt" ||
+				r.URL.Path == "/health/ready" ||
+				r.URL.Path == "/health/live" ||
+				strings.HasPrefix(r.URL.Path, "/static/") {
 				next.ServeHTTP(w, r)
 				return
 			}
-			
+
 			// Special handling for the root path when not authenticated
 			if r.URL.Path == "/" {
 				// Check if user has a valid session before allowing access to root

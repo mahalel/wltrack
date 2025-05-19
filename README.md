@@ -29,6 +29,7 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 - Turso CLI and account
 - Docker (for containerization)
 - Azure CLI (for deployment)
+- Optional: golangci-lint for linting
 
 ### Local Development
 
@@ -71,7 +72,34 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 
 7. Open http://localhost:8080 in your browser
 
-# Building and Running with Docker
+### Testing
+
+Run the test suite:
+```
+just test
+```
+
+Run tests with coverage report:
+```
+just test-coverage
+```
+
+The project uses both real SQLite-based tests and mock database implementations for unit testing.
+
+## Development Commands
+
+You can use the provided justfile for common development tasks:
+
+```
+just lint        # Format and lint the code
+just test        # Run tests
+just test-race   # Run tests with race detection
+just build       # Build the application
+just check       # Run formatting, linting, and tests
+just build-docker # Build Docker container
+```
+
+## Building and Running with Docker
 
 1. Install just (optional, for convenient commands):
    ```
@@ -143,7 +171,7 @@ The project uses a multi-stage Dockerfile for efficient containerization. The st
      --env-vars TURSO_URL="libsql://your-database-url.turso.io" TURSO_AUTH_TOKEN="your-token"
    ```
 
-Note: The project can also be published to GitHub Container Registry (GHCR) using the included GitHub Actions workflow that triggers on version tag pushes.
+Note: The project can also be published to GitHub Container Registry (GHCR) using the included GitHub Actions workflow that triggers on version tag pushes. The workflow is configured to run tests, linting, and formatting checks before building and publishing the container.
 
 ## Project Structure
 
@@ -155,6 +183,7 @@ Note: The project can also be published to GitHub Container Registry (GHCR) usin
 │   ├── auth            # Authentication functionality
 │   ├── config          # Application configuration
 │   ├── database        # Database interactions
+│   │   └── mock_db.go  # Mock database implementation for testing
 │   ├── handlers        # HTTP handlers
 │   ├── models          # Data models
 │   └── templates       # templ templates
@@ -164,8 +193,10 @@ Note: The project can also be published to GitHub Container Registry (GHCR) usin
 │   └── js              # JavaScript files
 ├── docs                # Documentation
 ├── .github/workflows   # GitHub Actions CI/CD workflows
-├── Dockerfile          # Docker build configuration
-└── justfile            # Command runner for development tasks
+│   ├── ci.yml          # Lint, format, and test workflow
+│   └── publish-container.yml # Container publishing workflow
+├── Dockerfile          # Docker build configuration 
+└── justfile            # Command runner for building, testing, and linting
 ```
 
 ## Environment Variables
@@ -222,3 +253,20 @@ WLTrak supports authentication using GitHub Apps for user login. To set up GitHu
 4. Run the application with authentication enabled
 
 For detailed setup instructions, see [GitHub App Authentication](docs/github-app-auth.md).
+
+## Continuous Integration
+
+The project uses GitHub Actions for CI/CD:
+
+1. On every push to `main` and PR, the CI workflow runs:
+   - Code formatting check with `go fmt`
+   - Static analysis with `go vet` and golangci-lint
+   - Unit tests with Go's testing framework
+   - Test coverage reporting
+
+2. When a version tag (v*) is pushed, the container workflow runs:
+   - First ensures all CI checks pass
+   - Builds the Docker container
+   - Publishes the container to GitHub Container Registry
+
+This ensures that all tests and checks pass before any container is built and published.

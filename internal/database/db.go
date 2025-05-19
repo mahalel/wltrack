@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"strings"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
@@ -19,7 +20,7 @@ type DB struct {
 // New creates a new database connection
 func New(url, authToken string) (*DB, error) {
 	var driver, connStr string
-	
+
 	if strings.HasPrefix(url, "file:") {
 		// Local SQLite database
 		driver = "sqlite3"
@@ -152,7 +153,7 @@ func (db *DB) GetAllExercises() ([]models.Exercise, error) {
 func (db *DB) GetExercise(id int64) (models.Exercise, error) {
 	ctx := context.Background()
 	var ex models.Exercise
-	err := db.QueryRowContext(ctx, 
+	err := db.QueryRowContext(ctx,
 		`SELECT id, name, description, created_at FROM exercises WHERE id = ?`,
 		id,
 	).Scan(&ex.ID, &ex.Name, &ex.Description, &ex.CreatedAt)
@@ -162,7 +163,7 @@ func (db *DB) GetExercise(id int64) (models.Exercise, error) {
 // AddExercise adds a new exercise
 func (db *DB) AddExercise(name, description string) (int64, error) {
 	ctx := context.Background()
-	result, err := db.ExecContext(ctx, 
+	result, err := db.ExecContext(ctx,
 		`INSERT INTO exercises (name, description) VALUES (?, ?)`,
 		name, description,
 	)
@@ -175,7 +176,7 @@ func (db *DB) AddExercise(name, description string) (int64, error) {
 // SaveOneRepMax saves a one rep max for an exercise
 func (db *DB) SaveOneRepMax(exerciseID int64, weight float64) (int64, error) {
 	ctx := context.Background()
-	result, err := db.ExecContext(ctx, 
+	result, err := db.ExecContext(ctx,
 		`INSERT INTO one_rep_max (exercise_id, weight, date) VALUES (?, ?, CURRENT_TIMESTAMP)`,
 		exerciseID, weight,
 	)
@@ -295,7 +296,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 	if err != nil {
 		return result, err
 	}
-	
+
 	result.Workout = workout
 
 	// Get workout exercises
@@ -315,19 +316,19 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 		var ex models.ExerciseWithSets
 		var we models.WorkoutExercise
 		var e models.Exercise
-		
+
 		if err := exercisesRows.Scan(
 			&we.ID, &we.ExerciseID, &we.Notes,
 			&e.Name, &e.Description, &e.CreatedAt,
 		); err != nil {
 			return result, err
 		}
-		
+
 		we.WorkoutID = workoutID
 		e.ID = we.ExerciseID
 		ex.Exercise = e
 		ex.WorkoutExercise = we
-		
+
 		// Get sets for this exercise
 		setsRows, err := db.QueryContext(ctx, `
 			SELECT id, reps, weight, percentage_of_max, set_order
@@ -338,7 +339,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 		if err != nil {
 			return result, err
 		}
-		
+
 		var sets []models.Set
 		for setsRows.Next() {
 			var s models.Set
@@ -350,7 +351,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 			sets = append(sets, s)
 		}
 		setsRows.Close()
-		
+
 		ex.Sets = sets
 		result.Exercises = append(result.Exercises, ex)
 	}
@@ -362,7 +363,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 func (db *DB) GetExerciseHistory(exerciseID int64) ([]models.WorkoutExercise, error) {
 	ctx := context.Background()
 	rows, err := db.QueryContext(ctx, `
-		SELECT we.id, we.workout_id, w.date, we.notes
+		SELECT we.id, we.workout_id, w.date, we.notes, we.created_at
 		FROM workout_exercises we
 		JOIN workouts w ON we.workout_id = w.id
 		WHERE we.exercise_id = ?
@@ -376,8 +377,8 @@ func (db *DB) GetExerciseHistory(exerciseID int64) ([]models.WorkoutExercise, er
 	var history []models.WorkoutExercise
 	for rows.Next() {
 		var we models.WorkoutExercise
-		var date string
-		if err := rows.Scan(&we.ID, &we.WorkoutID, &date, &we.Notes); err != nil {
+		var workoutDate time.Time
+		if err := rows.Scan(&we.ID, &we.WorkoutID, &workoutDate, &we.Notes, &we.CreatedAt); err != nil {
 			return nil, err
 		}
 		we.ExerciseID = exerciseID

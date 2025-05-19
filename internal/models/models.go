@@ -29,11 +29,11 @@ type Workout struct {
 
 // WorkoutExercise represents an exercise performed during a workout
 type WorkoutExercise struct {
-	ID        int64     `json:"id"`
-	WorkoutID int64     `json:"workout_id"`
-	ExerciseID int64    `json:"exercise_id"`
-	Notes     string    `json:"notes,omitempty"`
-	CreatedAt time.Time `json:"created_at"`
+	ID         int64     `json:"id"`
+	WorkoutID  int64     `json:"workout_id"`
+	ExerciseID int64     `json:"exercise_id"`
+	Notes      string    `json:"notes,omitempty"`
+	CreatedAt  time.Time `json:"created_at"`
 }
 
 // Set represents a single set of an exercise
@@ -48,13 +48,13 @@ type Set struct {
 
 // ExerciseWithSets is a helper struct for returning an exercise with all its sets
 type ExerciseWithSets struct {
-	Exercise        Exercise          `json:"exercise"`
-	WorkoutExercise WorkoutExercise   `json:"workout_exercise"`
-	Sets            []Set             `json:"sets"`
+	Exercise        Exercise        `json:"exercise"`
+	WorkoutExercise WorkoutExercise `json:"workout_exercise"`
+	Sets            []Set           `json:"sets"`
 }
 
 // WorkoutWithExercises is a helper struct for returning a workout with all its exercises and sets
 type WorkoutWithExercises struct {
-	Workout   Workout             `json:"workout"`
-	Exercises []ExerciseWithSets  `json:"exercises"`
+	Workout   Workout            `json:"workout"`
+	Exercises []ExerciseWithSets `json:"exercises"`
 }
