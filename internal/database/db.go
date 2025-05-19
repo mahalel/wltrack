@@ -14,7 +14,7 @@ import (
 
 // DB represents the database connection
 type DB struct {
-	*sql.DB
+	db *sql.DB
 }
 
 // New creates a new database connection
@@ -41,7 +41,7 @@ func New(url, authToken string) (*DB, error) {
 		return nil, err
 	}
 
-	return &DB{conn}, nil
+	return &DB{db: conn}, nil
 }
 
 // SetupDB initializes the database with tables if they don't exist
@@ -49,7 +49,7 @@ func (db *DB) SetupDB() error {
 	ctx := context.Background()
 
 	// Create exercises table
-	_, err := db.ExecContext(ctx, `
+	_, err := db.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS exercises (
 			id INTEGER PRIMARY KEY,
 			name TEXT NOT NULL,
@@ -62,7 +62,7 @@ func (db *DB) SetupDB() error {
 	}
 
 	// Create one_rep_max table
-	_, err = db.ExecContext(ctx, `
+	_, err = db.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS one_rep_max (
 			id INTEGER PRIMARY KEY,
 			exercise_id INTEGER NOT NULL,
@@ -76,7 +76,7 @@ func (db *DB) SetupDB() error {
 	}
 
 	// Create workouts table
-	_, err = db.ExecContext(ctx, `
+	_, err = db.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS workouts (
 			id INTEGER PRIMARY KEY,
 			date TIMESTAMP NOT NULL,
@@ -89,7 +89,7 @@ func (db *DB) SetupDB() error {
 	}
 
 	// Create workout_exercises table
-	_, err = db.ExecContext(ctx, `
+	_, err = db.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS workout_exercises (
 			id INTEGER PRIMARY KEY,
 			workout_id INTEGER NOT NULL,
@@ -105,7 +105,7 @@ func (db *DB) SetupDB() error {
 	}
 
 	// Create sets table
-	_, err = db.ExecContext(ctx, `
+	_, err = db.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS sets (
 			id INTEGER PRIMARY KEY,
 			workout_exercise_id INTEGER NOT NULL,
@@ -125,13 +125,13 @@ func (db *DB) SetupDB() error {
 
 // CloseDB closes the database connection
 func (db *DB) CloseDB() error {
-	return db.Close()
+	return db.db.Close()
 }
 
 // GetAllExercises retrieves all exercises from the database
 func (db *DB) GetAllExercises() ([]models.Exercise, error) {
 	ctx := context.Background()
-	rows, err := db.QueryContext(ctx, `SELECT id, name, description, created_at FROM exercises ORDER BY name`)
+	rows, err := db.db.QueryContext(ctx, `SELECT id, name, description, created_at FROM exercises ORDER BY name`)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +153,7 @@ func (db *DB) GetAllExercises() ([]models.Exercise, error) {
 func (db *DB) GetExercise(id int64) (models.Exercise, error) {
 	ctx := context.Background()
 	var ex models.Exercise
-	err := db.QueryRowContext(ctx,
+	err := db.db.QueryRowContext(ctx,
 		`SELECT id, name, description, created_at FROM exercises WHERE id = ?`,
 		id,
 	).Scan(&ex.ID, &ex.Name, &ex.Description, &ex.CreatedAt)
@@ -163,7 +163,7 @@ func (db *DB) GetExercise(id int64) (models.Exercise, error) {
 // AddExercise adds a new exercise
 func (db *DB) AddExercise(name, description string) (int64, error) {
 	ctx := context.Background()
-	result, err := db.ExecContext(ctx,
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO exercises (name, description) VALUES (?, ?)`,
 		name, description,
 	)
@@ -176,7 +176,7 @@ func (db *DB) AddExercise(name, description string) (int64, error) {
 // SaveOneRepMax saves a one rep max for an exercise
 func (db *DB) SaveOneRepMax(exerciseID int64, weight float64) (int64, error) {
 	ctx := context.Background()
-	result, err := db.ExecContext(ctx,
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO one_rep_max (exercise_id, weight, date) VALUES (?, ?, CURRENT_TIMESTAMP)`,
 		exerciseID, weight,
 	)
@@ -190,7 +190,7 @@ func (db *DB) SaveOneRepMax(exerciseID int64, weight float64) (int64, error) {
 func (db *DB) GetLatestOneRepMax(exerciseID int64) (models.OneRepMax, error) {
 	ctx := context.Background()
 	var orm models.OneRepMax
-	err := db.QueryRowContext(ctx,
+	err := db.db.QueryRowContext(ctx,
 		`SELECT id, exercise_id, weight, date FROM one_rep_max 
 		 WHERE exercise_id = ? ORDER BY date DESC LIMIT 1`,
 		exerciseID,
@@ -204,7 +204,7 @@ func (db *DB) GetLatestOneRepMax(exerciseID int64) (models.OneRepMax, error) {
 // UpdateExercise updates an existing exercise
 func (db *DB) UpdateExercise(id int64, name, description string) error {
 	ctx := context.Background()
-	_, err := db.ExecContext(ctx,
+	_, err := db.db.ExecContext(ctx,
 		`UPDATE exercises SET name = ?, description = ? WHERE id = ?`,
 		name, description, id,
 	)
@@ -214,7 +214,7 @@ func (db *DB) UpdateExercise(id int64, name, description string) error {
 // AddWorkout adds a new workout
 func (db *DB) AddWorkout(date string, notes string) (int64, error) {
 	ctx := context.Background()
-	result, err := db.ExecContext(ctx,
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO workouts (date, notes) VALUES (?, ?)`,
 		date, notes,
 	)
@@ -227,7 +227,7 @@ func (db *DB) AddWorkout(date string, notes string) (int64, error) {
 // UpdateWorkout updates an existing workout
 func (db *DB) UpdateWorkout(id int64, date string, notes string) error {
 	ctx := context.Background()
-	_, err := db.ExecContext(ctx,
+	_, err := db.db.ExecContext(ctx,
 		`UPDATE workouts SET date = ?, notes = ? WHERE id = ?`,
 		date, notes, id,
 	)
@@ -237,7 +237,7 @@ func (db *DB) UpdateWorkout(id int64, date string, notes string) error {
 // AddWorkoutExercise adds an exercise to a workout
 func (db *DB) AddWorkoutExercise(workoutID, exerciseID int64, notes string) (int64, error) {
 	ctx := context.Background()
-	result, err := db.ExecContext(ctx,
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO workout_exercises (workout_id, exercise_id, notes) VALUES (?, ?, ?)`,
 		workoutID, exerciseID, notes,
 	)
@@ -250,7 +250,7 @@ func (db *DB) AddWorkoutExercise(workoutID, exerciseID int64, notes string) (int
 // AddSet adds a set to a workout exercise
 func (db *DB) AddSet(workoutExerciseID int64, reps int, weight float64, percentageOfMax float64, setOrder int) (int64, error) {
 	ctx := context.Background()
-	result, err := db.ExecContext(ctx,
+	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO sets (workout_exercise_id, reps, weight, percentage_of_max, set_order) 
 		 VALUES (?, ?, ?, ?, ?)`,
 		workoutExerciseID, reps, weight, percentageOfMax, setOrder,
@@ -264,7 +264,7 @@ func (db *DB) AddSet(workoutExerciseID int64, reps int, weight float64, percenta
 // GetWorkouts gets all workouts, ordered by date
 func (db *DB) GetWorkouts() ([]models.Workout, error) {
 	ctx := context.Background()
-	rows, err := db.QueryContext(ctx, `SELECT id, date, notes, created_at FROM workouts ORDER BY date DESC`)
+	rows, err := db.db.QueryContext(ctx, `SELECT id, date, notes, created_at FROM workouts ORDER BY date DESC`)
 	if err != nil {
 		return nil, err
 	}
@@ -289,7 +289,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 	var result models.WorkoutWithExercises
 
 	// Get workout
-	err := db.QueryRowContext(ctx,
+	err := db.db.QueryRowContext(ctx,
 		`SELECT id, date, notes, created_at FROM workouts WHERE id = ?`,
 		workoutID,
 	).Scan(&workout.ID, &workout.Date, &workout.Notes, &workout.CreatedAt)
@@ -300,7 +300,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 	result.Workout = workout
 
 	// Get workout exercises
-	exercisesRows, err := db.QueryContext(ctx, `
+	exercisesRows, err := db.db.QueryContext(ctx, `
 		SELECT we.id, we.exercise_id, we.notes, e.name, e.description, e.created_at
 		FROM workout_exercises we
 		JOIN exercises e ON we.exercise_id = e.id
@@ -330,7 +330,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 		ex.WorkoutExercise = we
 
 		// Get sets for this exercise
-		setsRows, err := db.QueryContext(ctx, `
+		setsRows, err := db.db.QueryContext(ctx, `
 			SELECT id, reps, weight, percentage_of_max, set_order
 			FROM sets
 			WHERE workout_exercise_id = ?
@@ -362,7 +362,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 // GetExerciseHistory gets the history of an exercise
 func (db *DB) GetExerciseHistory(exerciseID int64) ([]models.WorkoutExercise, error) {
 	ctx := context.Background()
-	rows, err := db.QueryContext(ctx, `
+	rows, err := db.db.QueryContext(ctx, `
 		SELECT we.id, we.workout_id, w.date, we.notes, we.created_at
 		FROM workout_exercises we
 		JOIN workouts w ON we.workout_id = w.id
@@ -391,7 +391,7 @@ func (db *DB) GetExerciseHistory(exerciseID int64) ([]models.WorkoutExercise, er
 // GetExerciseSetsForWorkout gets all sets for a specific exercise in a workout
 func (db *DB) GetExerciseSetsForWorkout(workoutExerciseID int64) ([]models.Set, error) {
 	ctx := context.Background()
-	rows, err := db.QueryContext(ctx, `
+	rows, err := db.db.QueryContext(ctx, `
 		SELECT id, reps, weight, percentage_of_max, set_order
 		FROM sets
 		WHERE workout_exercise_id = ?
@@ -418,7 +418,7 @@ func (db *DB) GetExerciseSetsForWorkout(workoutExerciseID int64) ([]models.Set, 
 // DeleteExercise deletes an exercise and all related data
 func (db *DB) DeleteExercise(exerciseID int64) error {
 	ctx := context.Background()
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := db.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -473,7 +473,7 @@ func (db *DB) DeleteExercise(exerciseID int64) error {
 // DeleteWorkout deletes a workout and all related data
 func (db *DB) DeleteWorkout(workoutID int64) error {
 	ctx := context.Background()
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := db.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
@@ -522,7 +522,7 @@ func (db *DB) DeleteWorkout(workoutID int64) error {
 // DeleteWorkoutExercisesAndSets deletes all exercises and sets for a workout without deleting the workout itself
 func (db *DB) DeleteWorkoutExercisesAndSets(workoutID int64) error {
 	ctx := context.Background()
-	tx, err := db.BeginTx(ctx, nil)
+	tx, err := db.db.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}

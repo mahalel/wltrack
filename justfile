@@ -71,13 +71,11 @@ clean:
     @echo "Note: This doesn't remove the static files - they're shared between dev and container"
 
 # Format and lint the code
-lint:
+format:
     @echo "Formatting code..."
     go fmt ./...
     @echo "Vetting code..."
     go vet ./...
-    @echo "Linting code..."
-    golangci-lint run ./...
 
 # Setup development environment
 setup:
@@ -117,7 +115,7 @@ help:
     @echo "  just test-race    - Run tests with race detection"
     @echo "  just test-coverage - Run tests with coverage report"
     @echo "  just clean        - Clean build artifacts"
-    @echo "  just lint         - Format and lint the code"
+    @echo "  just format       - Format the code"
     @echo "  just check        - Run all checks (format, lint, test)"
     @echo "  just setup        - Setup development environment"
     @echo "  just show-env     - Show current OS environment variables"
