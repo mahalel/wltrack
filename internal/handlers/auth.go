@@ -6,9 +6,9 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/user/wltrak/internal/auth"
-	"github.com/user/wltrak/internal/config"
-	authtmpl "github.com/user/wltrak/internal/templates/auth"
+	"github.com/mahalel/wltrack/internal/auth"
+	"github.com/mahalel/wltrack/internal/config"
+	authtmpl "github.com/mahalel/wltrack/internal/templates/auth"
 )
 
 // Secret masking for logging has been moved to the auth package

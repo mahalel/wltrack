@@ -3,8 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/user/wltrak/internal/database"
-	"github.com/user/wltrak/internal/templates"
+	"github.com/mahalel/wltrack/internal/database"
+	"github.com/mahalel/wltrack/internal/templates"
 )
 
 // HomeHandler handles the GET / route

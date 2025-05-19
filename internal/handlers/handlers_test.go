@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/user/wltrak/internal/database"
+	"github.com/mahalel/wltrack/internal/database"
 )
 
 func setupTestServer(t *testing.T) (*database.DB, func()) {

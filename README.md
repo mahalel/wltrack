@@ -35,8 +35,8 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 
 1. Clone the repository:
    ```
-   git clone https://github.com/mahalel/wltrak.git
-   cd wltrak
+   git clone https://github.com/mahalel/wltrack.git
+   cd wltrack
    ```
 
 2. Install dependencies:

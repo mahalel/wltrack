@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/user/wltrak/internal/database"
-	"github.com/user/wltrak/internal/templates"
+	"github.com/mahalel/wltrack/internal/database"
+	"github.com/mahalel/wltrack/internal/templates"
 )
 
 // WorkoutsHandler handles the GET /workouts route

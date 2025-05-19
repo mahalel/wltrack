@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/mahalel/wltrack/internal/models"
 	_ "github.com/mattn/go-sqlite3"
 	_ "github.com/tursodatabase/libsql-client-go/libsql"
-	"github.com/user/wltrak/internal/models"
 )
 
 // DB represents the database connection

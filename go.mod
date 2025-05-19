@@ -1,4 +1,4 @@
-module github.com/user/wltrak
+module github.com/mahalel/wltrack
 
 go 1.24.1
 

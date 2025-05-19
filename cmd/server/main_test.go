@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/user/wltrak/internal/config"
-	"github.com/user/wltrak/internal/database"
+	"github.com/mahalel/wltrack/internal/config"
+	"github.com/mahalel/wltrack/internal/database"
 )
 
 func TestMain(m *testing.M) {

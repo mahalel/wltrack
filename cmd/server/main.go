@@ -8,9 +8,9 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/user/wltrak/internal/config"
-	"github.com/user/wltrak/internal/database"
-	"github.com/user/wltrak/internal/handlers"
+	"github.com/mahalel/wltrack/internal/config"
+	"github.com/mahalel/wltrack/internal/database"
+	"github.com/mahalel/wltrack/internal/handlers"
 )
 
 // WLTrak - Weightlifting Tracking Application

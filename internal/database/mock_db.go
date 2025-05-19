@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/user/wltrak/internal/models"
+	"github.com/mahalel/wltrack/internal/models"
 )
 
 // MockDB is a mock implementation of the database functionality for testing
