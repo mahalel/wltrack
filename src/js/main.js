@@ -161,79 +161,242 @@ function attachExerciseRemoveListeners(container) {
   });
 }
 
+// Corrected and with logging
+function calculateAndUpdateWeightForSet(setElement) {
+  console.log("calculateAndUpdateWeightForSet called for setElement:", setElement);
+
+  if (!setElement) {
+    console.error("calculateAndUpdateWeightForSet: setElement is null or undefined. This should be a .set-range div.");
+    return;
+  }
+
+  const exerciseItem = setElement.closest(".exercise-entry"); // Corrected class
+  if (!exerciseItem) {
+    console.error("calculateAndUpdateWeightForSet: .exercise-entry not found for setElement:", setElement);
+    return;
+  }
+  console.log("Found exerciseItem (.exercise-entry):", exerciseItem);
+
+  // Corrected selectors based on workouts.templ
+  const percentageInput = setElement.querySelector("input[name='percentage[]']"); 
+  const exerciseSelect = exerciseItem.querySelector("select[name='exercise_id[]']"); 
+  const weightInput = setElement.querySelector("input[name='weight[]']");
+
+  if (!percentageInput) {
+    console.warn("calculateAndUpdateWeightForSet: percentageInput (input[name='percentage[]']) not found in setElement:", setElement);
+    return; 
+  }
+  console.log("Found percentageInput:", percentageInput, "Value:", percentageInput.value);
+
+  if (!exerciseSelect) {
+    console.warn("calculateAndUpdateWeightForSet: exerciseSelect (select[name='exercise_id[]']) not found in exerciseItem:", exerciseItem);
+    return;
+  }
+  console.log("Found exerciseSelect:", exerciseSelect, "Value:", exerciseSelect.value);
+  
+  if (!weightInput) {
+    console.warn("calculateAndUpdateWeightForSet: weightInput (input[name='weight[]']) not found in setElement:", setElement);
+    return;
+  }
+  console.log("Found weightInput:", weightInput);
+
+  const percentage = parseFloat(percentageInput.value);
+  const exerciseId = exerciseSelect.value;
+
+  console.log(`Percentage: ${percentage} (Raw: '${percentageInput.value}'), Exercise ID: ${exerciseId}`);
+
+  if (!exerciseId) {
+    console.log("No exercise selected. Not calculating weight.");
+    // weightInput.value = ""; // Keep manual value or clear?
+    // weightInput.placeholder = "Select exercise";
+    return;
+  }
+
+  // Do not proceed if percentage is not a positive number.
+  // This allows manual weight entry if percentage is empty or zero.
+  if (isNaN(percentage) || percentage <= 0) {
+    console.log("Percentage is not a positive number. Not auto-calculating weight. Manual input is allowed.");
+    // weightInput.placeholder = "Enter % or weight"; // Update placeholder if needed
+    return;
+  }
+
+  weightInput.placeholder = "Calculating...";
+  console.log(`Fetching 1RM for exercise ID: ${exerciseId}`);
+
+  fetch(`/api/exercises/${exerciseId}/1rm`)
+    .then(response => {
+      console.log("Fetch response status:", response.status);
+      if (!response.ok) {
+        // If 1RM is not found (e.g. 404), it's not necessarily a hard error for this function.
+        // It just means we can't auto-calculate.
+        if (response.status === 404) {
+            console.log(`No 1RM record found for exercise ID: ${exerciseId}. Manual weight input required.`);
+            weightInput.placeholder = "No 1RM on file";
+        } else {
+            console.error(`HTTP error fetching 1RM! status: ${response.status}, for exercise ID: ${exerciseId}`);
+            weightInput.placeholder = "Error fetching 1RM";
+        }
+        // Clear the value only if we intended to auto-calculate but failed,
+        // otherwise, a manually entered value might be present.
+        // For now, let's not clear it here, allowing manual override to persist.
+        // weightInput.value = ""; 
+        return null; // Signal to skip further processing
+      }
+      return response.text();
+    })
+    .then(html => {
+      if (html === null) return; // Skip if fetch indicated no 1RM or error
+
+      console.log("Received 1RM HTML:", html);
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const oneRmValueEl = tempDiv.querySelector('[data-one-rm-value]');
+      
+      if (!oneRmValueEl) {
+        console.warn("1RM data attribute [data-one-rm-value] not found in response for exercise ID:", exerciseId);
+        weightInput.placeholder = "1RM data missing";
+        // weightInput.value = "";
+        return;
+      }
+      
+      const oneRmString = oneRmValueEl.getAttribute('data-one-rm-value');
+      console.log("1RM string from attribute:", oneRmString);
+      const oneRm = parseFloat(oneRmString);
+      
+      if (isNaN(oneRm) || oneRm <= 0) {
+        console.warn("Invalid or zero 1RM value parsed:", oneRm, "(from string:", oneRmString, ") for exercise ID:", exerciseId);
+        weightInput.placeholder = "Invalid 1RM data";
+        // weightInput.value = "";
+        return;
+      }
+
+      console.log(`Calculating weight: (${percentage} / 100) * ${oneRm}`);
+      const calculatedWeight = (percentage / 100) * oneRm;
+      const roundedWeight = Math.round(calculatedWeight * 2) / 2;
+      console.log("Calculated weight:", calculatedWeight, "Rounded:", roundedWeight);
+      
+      // Only update if the new value is different, to avoid disrupting manual input if not necessary
+      // However, if percentage changes, we *should* update.
+      // The condition `if (isNaN(percentage) || percentage <= 0)` above handles when not to auto-calculate.
+      weightInput.value = roundedWeight;
+      weightInput.dispatchEvent(new Event('input', { bubbles: true })); // For sliders etc.
+      weightInput.placeholder = ""; // Clear placeholder as we have a value
+      console.log("Weight input updated to:", roundedWeight);
+    })
+    .catch(error => {
+      console.error("Catch block: Error fetching 1RM for exercise ID " + exerciseId + ":", error);
+      weightInput.placeholder = "Error calc weight";
+      // weightInput.value = "";
+    });
+}
+
 function attachSetRangeInputHandlers(container) {
-  // Add handlers for all relevant input types
+  console.log("attachSetRangeInputHandlers called for container:", container);
+  // Corrected input selectors based on workouts.templ name attributes
   const inputSelectors = [
-    "input[name^='weight']", 
-    "input[name^='reps']", 
-    "select[name^='rpe']", 
-    "input[type='range']"
+    "input[name='weight[]']", 
+    "input[name='reps[]']",   
+    // "select[name='rpe[]']", // RPE not directly used in weight calc, but good to re-attach listeners
+    "input[type='range']", // For sliders if any are dynamically added with sets
+    "input[name='percentage[]']"
   ];
   
   inputSelectors.forEach(selector => {
     container.querySelectorAll(selector).forEach(input => {
-      // Remove any existing event listeners
       const newInput = input.cloneNode(true);
       input.parentNode.replaceChild(newInput, input);
+      console.log("Attached listener for selector:", selector, "to element:", newInput);
       
-      // For range sliders, update the counter and link to actual input
+      // Range slider logic (if applicable to these inputs, mostly for reps/weight if sliders exist)
       if (newInput.type === "range") {
         const counter = newInput.previousElementSibling;
-        const actualInput = container.querySelector(`input[name='${newInput.dataset.target}']`) ||
-                          container.querySelector(`select[name='${newInput.dataset.target}']`);
-        
-        // Update counter and actual input when slider changes
-        newInput.addEventListener("input", function () {
-          if (counter) {
-            counter.textContent = this.value;
-          }
-          if (actualInput) {
-            actualInput.value = this.value;
-          }
-        });
-        
-        // Set initial counter value
-        if (counter && newInput.value) {
-          counter.textContent = newInput.value;
-        }
-        
-        // Link actual input back to the slider
-        if (actualInput) {
-          actualInput.addEventListener("input", function () {
-            newInput.value = this.value;
-            if (counter) {
-              counter.textContent = this.value;
+        const actualInputName = newInput.dataset.target;
+        if (actualInputName) {
+            const actualInput = container.querySelector(`input[name='${actualInputName}'], select[name='${actualInputName}']`);
+            if (actualInput) {
+                newInput.addEventListener("input", function () {
+                    if (counter) counter.textContent = this.value;
+                    actualInput.value = this.value;
+                    actualInput.dispatchEvent(new Event('input', { bubbles: true }));
+                });
+                actualInput.addEventListener("input", function () {
+                    newInput.value = this.value;
+                    if (counter) counter.textContent = this.value;
+                });
+                if (actualInput.value) {
+                    newInput.value = actualInput.value;
+                    if (counter) counter.textContent = actualInput.value;
+                } else if (newInput.value) {
+                    actualInput.value = newInput.value;
+                    if (counter) counter.textContent = newInput.value;
+                    actualInput.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            } else if (counter && newInput.value) {
+                 counter.textContent = newInput.value;
             }
-          });
-          
-          // Set initial slider value from actual input
-          if (actualInput.value) {
-            newInput.value = actualInput.value;
-            if (counter) {
-              counter.textContent = actualInput.value;
-            }
-          }
+        } else if (counter && newInput.value) { // Fallback if data-target is missing
+            counter.textContent = newInput.value;
         }
       }
       
-      // For weight and reps inputs, update related range sliders
-      if (newInput.name && (newInput.name.includes('weight') || newInput.name.includes('reps') || newInput.name.includes('rpe'))) {
+      // Update sliders if this input (weight, reps) has a corresponding slider
+      if (newInput.name && (newInput.name.includes('weight[]') || newInput.name.includes('reps[]'))) {
         newInput.addEventListener("input", function () {
-          const exerciseItem = this.closest(".exercise-item");
-          const rangeSliderId = this.name.replace(/[\[\]]/g, '-') + '-range';
-          const rangeSlider = exerciseItem.querySelector(`input[data-target='${this.name}']`);
-          const counter = rangeSlider ? rangeSlider.previousElementSibling : null;
-          
-          if (rangeSlider) {
-            rangeSlider.value = this.value;
-            if (counter) {
-              counter.textContent = this.value;
-            }
+          const exerciseItem = this.closest(".exercise-entry"); // Corrected class
+          if (exerciseItem) {
+              const rangeSlider = exerciseItem.querySelector(`input[type='range'][data-target='${this.name}']`);
+              if (rangeSlider) {
+                  rangeSlider.value = this.value;
+                  const counter = rangeSlider.previousElementSibling;
+                  if (counter) counter.textContent = this.value;
+              }
+          }
+        });
+      }
+      
+      // For percentage and reps inputs, trigger weight calculation
+      if (newInput.name && (newInput.name.includes('percentage[]') || newInput.name.includes('reps[]'))) {
+        newInput.addEventListener("input", function () {
+          console.log(`Input event on ${this.name}, value: ${this.value}`);
+          const setElement = this.closest(".set-range"); // Corrected class
+          if (setElement) {
+            calculateAndUpdateWeightForSet(setElement);
+          } else {
+            console.warn("Could not find .set-range parent for input:", this);
           }
         });
       }
     });
   });
+
+  // Handling for exercise selection dropdowns
+  container.querySelectorAll("select[name='exercise_id[]']").forEach(exerciseSelect => { // Corrected selector
+    const newExerciseSelect = exerciseSelect.cloneNode(true);
+    exerciseSelect.parentNode.replaceChild(newExerciseSelect, exerciseSelect);
+    console.log("Attached change listener to exercise select:", newExerciseSelect);
+    
+    newExerciseSelect.addEventListener("change", function() {
+      console.log(`Change event on exercise select, new value: ${this.value}`);
+      const exerciseItem = this.closest(".exercise-entry"); // Corrected class
+      if (exerciseItem) {
+        exerciseItem.querySelectorAll(".set-range").forEach(setElement => { // Corrected class
+          calculateAndUpdateWeightForSet(setElement);
+        });
+      } else {
+         console.warn("Could not find .exercise-entry parent for select:", this);
+      }
+    });
+  });
+
+  // After attaching all handlers, try an initial calculation for all sets in the container.
+  // This helps if the form loads with pre-filled percentage values or selected exercises.
+  if (container.matches || container.querySelectorAll) { // Check if container is a valid element/document fragment
+      const sets = (typeof container.querySelectorAll === 'function') ? container.querySelectorAll(".set-range") : [];
+      console.log("Attempting initial calculation for sets in container:", sets.length);
+      sets.forEach(set => {
+          calculateAndUpdateWeightForSet(set);
+      });
+  }
 }
 
 function updateSetRangeCounters(exerciseDiv) {
@@ -478,22 +641,22 @@ function setupHomePageChart() {
             legend: {
               position: 'top',
             },
-            tooltip: {
-              callbacks: {
-                title: function(tooltipItems) {
-                  return 'Date: ' + tooltipItems[0].label;
-                },
-                label: function(context) {
-                  return context.dataset.label + ': ' + context.raw + ' lbs';
+              tooltip: {
+                callbacks: {
+                  title: function(tooltipItems) {
+                    return 'Date: ' + tooltipItems[0].label;
+                  },
+                  label: function(context) {
+                    return context.dataset.label + ': ' + context.raw + ' kg';
+                  }
                 }
               }
-            }
-          },
+            },
           scales: {
             y: {
               title: {
                 display: true,
-                text: 'Weight (lbs)'
+                text: 'Weight (kg)'
               },
               beginAtZero: false
             },
@@ -605,6 +768,10 @@ function setupWeightInputs() {
       }
     });
   });
+  
+  // Note: We no longer need to attach percentage event listeners here
+  // They're now handled in attachSetRangeInputHandlers for all inputs
+  // including dynamically added ones
 }
 
 function setupExerciseDetailChart() {
@@ -707,9 +874,9 @@ function setupExerciseDetailChart() {
             label: function(context) {
               let label = context.dataset.label || '';
               let value = context.raw;
-              
+                
               if (label.includes('Weight') || label.includes('Volume')) {
-                return label + ': ' + value + ' lbs';
+                return label + ': ' + value + ' kg';
               } else {
                 return label + ': ' + value;
               }
@@ -728,15 +895,15 @@ function setupExerciseDetailChart() {
           position: 'left',
           title: {
             display: true,
-            text: 'Weight (lbs)'
+            text: 'Weight (kg)'
           },
-          beginAtZero: false,
+          beginAtZero: false
         },
         y1: {
           position: 'right',
           title: {
             display: true,
-            text: 'Volume (lbs)'
+            text: 'Volume (kg)'
           },
           beginAtZero: true,
           grid: {

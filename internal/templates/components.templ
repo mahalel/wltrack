@@ -1,5 +1,9 @@
 package templates
 
+import (
+	"strconv"
+)
+
 templ FormSuccess(message string) {
 	<div id="form-feedback" class="p-4 mb-4 border border-green-500 bg-green-50 text-green-700 rounded">
 		{message}
@@ -31,11 +35,11 @@ templ ExerciseCount(count int) {
 
 templ OneRepMaxValue(value float64, date string) {
 	if value > 0 {
-		<div>
+		<div data-one-rm-value={strconv.FormatFloat(value, 'f', 2, 64)}>
 			<span class="font-medium">{value} kg</span>
 			<span class="text-xs text-gray-500 block">{date}</span>
 		</div>
 	} else {
-		<span class="text-gray-500">Not set</span>
+		<span class="text-gray-500" data-one-rm-value="0">Not set</span>
 	}
 }
