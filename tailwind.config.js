@@ -2,7 +2,9 @@
 module.exports = {
   content: [
     "./internal/templates/**/*.{templ,html,go}",
-    "./static/**/*.{js,html}"
+    "./static/**/*.{js,html}",
+    "./cmd/**/*.go",
+    "./internal/**/*.{go,templ}",
   ],
   theme: {
     extend: {
@@ -17,10 +19,10 @@ module.exports = {
           "Ubuntu",
           "Cantarell",
           "Open Sans",
-          "sans-serif"
+          "sans-serif",
         ],
       },
     },
   },
-  plugins: [require('@tailwindcss/forms')],
-}
+  plugins: [require("@tailwindcss/forms")],
+};

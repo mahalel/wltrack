@@ -6,13 +6,14 @@
     "tailwindcss": "^3.3.5"
   },
   "scripts": {
-    "build:css": "tailwindcss -i ./src/input.css -o ./static/css/tailwind.css",
-    "watch:css": "tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --watch",
-    "minify:css": "tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --minify",
+    "build:css": "NODE_ENV=development tailwindcss -i ./src/input.css -o ./static/css/tailwind.css",
+    "watch:css": "NODE_ENV=development tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --watch",
+    "minify:css": "NODE_ENV=production tailwindcss -i ./src/input.css -o ./static/css/tailwind.css --minify",
     "build:js": "esbuild ./src/js/main.js --bundle --outfile=./static/js/main.js",
     "watch:js": "esbuild ./src/js/main.js --bundle --outfile=./static/js/main.js --watch",
     "minify:js": "esbuild ./src/js/main.js --bundle --minify --outfile=./static/js/main.js",
-    "build": "npm run minify:css && npm run minify:js",
+    "build": "npm run build:css && npm run build:js",
+    "build:prod": "npm run minify:css && npm run minify:js",
     "dev": "concurrently \"npm run watch:css\" \"npm run watch:js\" \"go run ./cmd/server\""
   },
   "devDependencies": {
