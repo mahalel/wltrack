@@ -553,7 +553,9 @@ func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode([]map[string]interface{}{}) // Return empty array instead of error
+			if err := json.NewEncoder(w).Encode([]map[string]any{}); err != nil {
+				log.Printf("Error encoding JSON response: %v", err)
+			} // Return empty array instead of error
 			return
 		}
 
@@ -562,7 +564,9 @@ func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 			// Return empty array instead of error
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode([]map[string]interface{}{})
+			if err := json.NewEncoder(w).Encode([]map[string]any{}); err != nil {
+				log.Printf("Error encoding JSON response: %v", err)
+			}
 			return
 		}
 
@@ -640,7 +644,9 @@ func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 			// If encoding fails, return an empty array
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode([]map[string]interface{}{})
+			if err := json.NewEncoder(w).Encode([]map[string]any{}); err != nil {
+				log.Printf("Error encoding JSON response: %v", err)
+			}
 			return
 		}
 	}
