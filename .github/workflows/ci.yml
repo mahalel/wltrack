@@ -83,6 +83,11 @@ jobs:
           go mod download
           go install github.com/a-h/templ/cmd/templ@latest
 
+      - name: Install just
+        uses: taiki-e/install-action@v2
+        with:
+          tool: just@1.40.0
+
       - name: Generate templ files
         run: templ generate
 
