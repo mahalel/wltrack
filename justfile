@@ -13,8 +13,8 @@ generate:
 
 # Build the Go application locally
 build: generate
-    @echo "Building Tailwind CSS..."
-    npm run minify:css
+    @echo "Building CSS..."
+    npm run build
     @echo "Building Go binary..."
     mkdir -p bin
     CGO_ENABLED=1 go build -o bin/server ./cmd/server
@@ -24,17 +24,11 @@ run: build
     @echo "Running application..."
     ENV=development ./bin/server
 
-# Run in development mode with Tailwind CSS watcher
-dev: generate
-    @echo "Running in development mode with Tailwind CSS watcher..."
-    npm run dev
-
 # Build container using Docker (for cross-compilation with CGO support)
 build-docker: clean generate
     @echo "Building container with Docker for cross-compilation with CGO..."
     docker buildx build --platform linux/amd64 -t wltrack:latest .
     @echo "Container built successfully as 'wltrack:latest'"
-
 
 # Run the application in a Docker container
 # This passes the host OS environment variables to the container
@@ -51,11 +45,6 @@ run-docker: build-docker
 test: generate
     @echo "Running tests..."
     go test -v ./...
-
-# Run tests with race detection
-test-race: generate
-    @echo "Running tests with race detection..."
-    go test -race -v ./...
 
 # Run tests with coverage report
 test-coverage: generate
@@ -77,7 +66,7 @@ format:
     @echo "Vetting code..."
     go vet ./...
 
-lint:
+lint: format
     @echo "Linting code..."
     golangci-lint run
 
@@ -94,7 +83,6 @@ show-env:
     @echo "Current Environment Variables:"
     @echo "TURSO_URL is $(if [ -n "${TURSO_URL:-}" ]; then echo "set"; else echo "not set"; fi)"
     @echo "TURSO_AUTH_TOKEN is $(if [ -n "${TURSO_AUTH_TOKEN:-}" ]; then echo "set"; else echo "not set"; fi)"
-
 
 # Reset the local database (development only)
 reset-db:

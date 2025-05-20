@@ -25,8 +25,8 @@ RUN templ generate
 
 # No need to copy code files again as they're already copied above
 
-# Build Tailwind CSS and JavaScript bundle for production
-RUN npm run build:prod
+# Build Tailwind CSS and JavaScript bundle
+RUN npm run build
 
 # Build the application with CGO enabled and optimized flags
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
