@@ -43,8 +43,11 @@ RUN apk add --no-cache ca-certificates
 # Copy the binary from the builder stage
 COPY --from=builder /app/bin/server /server
 
-# Copy static files
+# Copy static files from host
 COPY static/ /static/
+
+# Copy generated tailwind CSS from builder stage
+COPY --from=builder /app/static/css/tailwind.css /static/css/tailwind.css
 
 # Set environment variables
 ENV PORT=8080
