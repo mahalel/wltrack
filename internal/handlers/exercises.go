@@ -206,10 +206,10 @@ func UpdateExerciseHandler(db *database.DB) http.HandlerFunc {
 		}
 
 		// Add JavaScript fallback for browsers without HTMX
-		                if _, err := fmt.Fprintf(w, "<script>setTimeout(function() { window.location.href = '/exercises/%s'; }, 800);</script>", idStr); err != nil {
-		                    http.Error(w, "Error writing response", http.StatusInternalServerError)
-		                    return
-		                }
+		if _, err := fmt.Fprintf(w, "<script>setTimeout(function() { window.location.href = '/exercises/%s'; }, 800);</script>", idStr); err != nil {
+			http.Error(w, "Error writing response", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

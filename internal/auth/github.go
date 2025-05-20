@@ -289,11 +289,11 @@ func (app *GitHubApp) CallbackHandler() http.HandlerFunc {
 			http.Error(w, "Failed to exchange token: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		                defer func() {
-		                    if err := resp.Body.Close(); err != nil {
-		                        fmt.Printf("Failed to close response body: %v\n", err)
-		                    }
-		                }()
+		defer func() {
+			if err := resp.Body.Close(); err != nil {
+				fmt.Printf("Failed to close response body: %v\n", err)
+			}
+		}()
 
 		fmt.Printf("[DEBUG] Token exchange response status: %s\n", resp.Status)
 
@@ -358,11 +358,11 @@ func (app *GitHubApp) CallbackHandler() http.HandlerFunc {
 			http.Error(w, "Failed to validate token: "+err.Error(), http.StatusInternalServerError)
 			return
 		}
-		                defer func() {
-		                    if err := userResp.Body.Close(); err != nil {
-		                        fmt.Printf("Failed to close user response body: %v\n", err)
-		                    }
-		                }()
+		defer func() {
+			if err := userResp.Body.Close(); err != nil {
+				fmt.Printf("Failed to close user response body: %v\n", err)
+			}
+		}()
 
 		if userResp.StatusCode != http.StatusOK {
 			userErrBody, _ := io.ReadAll(userResp.Body)
