@@ -20,7 +20,6 @@ COPY cmd/ ./cmd/
 COPY internal/ ./internal/
 COPY src/ ./src/
 COPY tailwind.config.js ./
-COPY scripts/ ./scripts/
 
 # Generate templates after all source code is copied
 RUN templ generate
