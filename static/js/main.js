@@ -17510,6 +17510,7 @@
       attachSetRangeListeners(exerciseDiv);
       attachExerciseRemoveListeners(exerciseDiv);
       attachSetRangeInputHandlers(exerciseDiv);
+      attachAddSetRangeListeners(exerciseDiv);
       const exerciseInput = exerciseDiv.querySelector("input[type='text']");
       if (exerciseInput) {
         exerciseInput.focus();
@@ -17518,7 +17519,9 @@
     attachSetRangeListeners(document);
     attachExerciseRemoveListeners(document);
     attachSetRangeInputHandlers(document);
+    attachAddSetRangeListeners(document);
     updateAllSetRanges();
+    updateAllSetRangeCounters();
   }
   function attachSetRangeListeners(container) {
     container.querySelectorAll(".add-set").forEach((button) => {
@@ -17543,6 +17546,85 @@
           weightInput.focus();
         }
         updateSetRangeCounters(exerciseDiv);
+      });
+    });
+  }
+  function attachAddSetRangeListeners(container) {
+    container.querySelectorAll(".add-set-range").forEach((button) => {
+      const newButton = button.cloneNode(true);
+      button.parentNode.replaceChild(newButton, button);
+      newButton.addEventListener("click", function() {
+        const exerciseDiv = this.closest(".exercise-entry");
+        const setRangeContainer = exerciseDiv.querySelector(".set-range-container");
+        const firstSetRange = setRangeContainer.querySelector(".set-range");
+        const newSetRange = firstSetRange.cloneNode(true);
+        const setRanges = setRangeContainer.querySelectorAll(".set-range");
+        const previousSetRange = setRanges[setRanges.length - 1];
+        const previousEndInput = previousSetRange.querySelector("input[name='set_end[]']");
+        const previousEndValue = previousEndInput ? parseInt(previousEndInput.value) || 0 : 0;
+        const newStartValue = previousEndValue + 1;
+        const newEndValue = newStartValue + 2;
+        newSetRange.querySelectorAll("input").forEach((input) => {
+          if (input.name === "set_start[]") {
+            input.value = newStartValue.toString();
+          } else if (input.name === "set_end[]") {
+            input.value = newEndValue.toString();
+          } else {
+            input.value = "";
+          }
+        });
+        const setsCountElement = newSetRange.querySelector(".sets-count");
+        if (setsCountElement) {
+          setsCountElement.textContent = (newEndValue - newStartValue + 1).toString();
+        }
+        setRangeContainer.appendChild(newSetRange);
+        const removeButton = newSetRange.querySelector(".remove-set-range");
+        if (removeButton) {
+          removeButton.addEventListener("click", function() {
+            if (setRangeContainer.querySelectorAll(".set-range").length > 1) {
+              newSetRange.remove();
+            }
+          });
+        }
+        attachSetRangeInputHandlers(newSetRange);
+        updateSetRangeCounters(exerciseDiv);
+      });
+    });
+    container.querySelectorAll(".remove-set-range").forEach((button) => {
+      const newButton = button.cloneNode(true);
+      button.parentNode.replaceChild(newButton, button);
+      newButton.addEventListener("click", function() {
+        const setRange = this.closest(".set-range");
+        const setRangeContainer = this.closest(".set-range-container");
+        if (setRangeContainer.querySelectorAll(".set-range").length > 1) {
+          const allSetRanges = Array.from(setRangeContainer.querySelectorAll(".set-range"));
+          const currentIndex = allSetRanges.indexOf(setRange);
+          const startInput = setRange.querySelector("input[name='set_start[]']");
+          const endInput = setRange.querySelector("input[name='set_end[]']");
+          const startValue = parseInt(startInput?.value) || 0;
+          const endValue = parseInt(endInput?.value) || 0;
+          const rangeDiff = endValue - startValue + 1;
+          setRange.remove();
+          if (currentIndex >= 0 && currentIndex < allSetRanges.length - 1) {
+            for (let i2 = currentIndex + 1; i2 < allSetRanges.length; i2++) {
+              const nextSetRange = allSetRanges[i2];
+              const nextStartInput = nextSetRange.querySelector("input[name='set_start[]']");
+              const nextEndInput = nextSetRange.querySelector("input[name='set_end[]']");
+              if (nextStartInput && nextEndInput) {
+                const nextStart = parseInt(nextStartInput.value) || 0;
+                const nextEnd = parseInt(nextEndInput.value) || 0;
+                nextStartInput.value = Math.max(1, nextStart - rangeDiff);
+                nextEndInput.value = Math.max(1, nextEnd - rangeDiff);
+                const setsCountElement = nextSetRange.querySelector(".sets-count");
+                if (setsCountElement) {
+                  const newCount = parseInt(nextEndInput.value) - parseInt(nextStartInput.value) + 1;
+                  setsCountElement.textContent = newCount.toString();
+                }
+              }
+            }
+          }
+          updateSetRangeCounters(setRangeContainer.closest(".exercise-entry") || document);
+        }
       });
     });
   }
@@ -17650,6 +17732,8 @@
     const inputSelectors = [
       "input[name='weight[]']",
       "input[name='reps[]']",
+      "input[name='set_start[]']",
+      "input[name='set_end[]']",
       // "select[name='rpe[]']", // RPE not directly used in weight calc, but good to re-attach listeners
       "input[type='range']",
       // For sliders if any are dynamically added with sets
@@ -17703,16 +17787,41 @@
             }
           });
         }
-        if (newInput.name && (newInput.name.includes("percentage[]") || newInput.name.includes("reps[]"))) {
-          newInput.addEventListener("input", function() {
-            console.log(`Input event on ${this.name}, value: ${this.value}`);
-            const setElement = this.closest(".set-range");
-            if (setElement) {
-              calculateAndUpdateWeightForSet(setElement);
-            } else {
-              console.warn("Could not find .set-range parent for input:", this);
-            }
-          });
+        if (newInput.name) {
+          if (newInput.name === "set_start[]" || newInput.name === "set_end[]") {
+            newInput.addEventListener("input", function() {
+              console.log(`Input event on ${this.name}, value: ${this.value}`);
+              const setElement = this.closest(".set-range");
+              if (setElement) {
+                const startInput = setElement.querySelector("input[name='set_start[]']");
+                const endInput = setElement.querySelector("input[name='set_end[]']");
+                if (startInput && endInput) {
+                  const startValue = parseInt(startInput.value) || 1;
+                  const endValue = parseInt(endInput.value) || 1;
+                  if (this.name === "set_start[]" && startValue > endValue) {
+                    endInput.value = startValue;
+                  }
+                  if (this.name === "set_end[]" && endValue < startValue) {
+                    startInput.value = endValue;
+                  }
+                }
+                calculateAndUpdateWeightForSet(setElement);
+                updateSetRangeCounters(setElement.closest(".exercise-entry") || document);
+              } else {
+                console.warn("Could not find .set-range parent for input:", this);
+              }
+            });
+          } else if (newInput.name.includes("percentage[]") || newInput.name.includes("reps[]")) {
+            newInput.addEventListener("input", function() {
+              console.log(`Input event on ${this.name}, value: ${this.value}`);
+              const setElement = this.closest(".set-range");
+              if (setElement) {
+                calculateAndUpdateWeightForSet(setElement);
+              } else {
+                console.warn("Could not find .set-range parent for input:", this);
+              }
+            });
+          }
         }
       });
     });
@@ -17742,12 +17851,18 @@
   }
   function updateSetRangeCounters(exerciseDiv) {
     if (!exerciseDiv) return;
-    const setList = exerciseDiv.querySelector(".set-list");
-    const setCounter = exerciseDiv.querySelector(".set-counter");
-    if (setList && setCounter) {
-      const setCount = setList.querySelectorAll(".set-item").length;
-      setCounter.textContent = `Sets: ${setCount}`;
-    }
+    const setRanges = exerciseDiv.querySelectorAll(".set-range");
+    setRanges.forEach((setRange) => {
+      const startInput = setRange.querySelector("input[name='set_start[]']");
+      const endInput = setRange.querySelector("input[name='set_end[]']");
+      const setsCountElement = setRange.querySelector(".sets-count");
+      if (startInput && endInput && setsCountElement) {
+        const start = parseInt(startInput.value) || 0;
+        const end = parseInt(endInput.value) || 0;
+        const totalSets = end >= start ? end - start + 1 : 0;
+        setsCountElement.textContent = totalSets;
+      }
+    });
   }
   function updateAllSetRanges() {
     const exercises = document.querySelectorAll(".exercise-item");
@@ -17771,6 +17886,12 @@
         });
       });
       updateSetRangeCounters(exercise);
+    });
+  }
+  function updateAllSetRangeCounters() {
+    const exerciseEntries = document.querySelectorAll(".exercise-entry");
+    exerciseEntries.forEach((exerciseEntry) => {
+      updateSetRangeCounters(exerciseEntry);
     });
   }
   function setupCharts() {

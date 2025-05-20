@@ -84,6 +84,7 @@ function setupWorkoutForm() {
     attachSetRangeListeners(exerciseDiv);
     attachExerciseRemoveListeners(exerciseDiv);
     attachSetRangeInputHandlers(exerciseDiv);
+    attachAddSetRangeListeners(exerciseDiv);
     
     // Set focus on the new exercise input
     const exerciseInput = exerciseDiv.querySelector("input[type='text']");
@@ -96,7 +97,9 @@ function setupWorkoutForm() {
   attachSetRangeListeners(document);
   attachExerciseRemoveListeners(document);
   attachSetRangeInputHandlers(document);
+  attachAddSetRangeListeners(document);
   updateAllSetRanges();
+  updateAllSetRangeCounters();
 }
 
 function attachSetRangeListeners(container) {
@@ -139,8 +142,130 @@ function attachSetRangeListeners(container) {
         weightInput.focus();
       }
       
-      // Update the range counter for this exercise
+      // Update the set counters for this exercise
       updateSetRangeCounters(exerciseDiv);
+    });
+  });
+}
+
+function attachAddSetRangeListeners(container) {
+  // Add new set range to an exercise
+  container.querySelectorAll(".add-set-range").forEach(button => {
+    // Remove existing event listeners to prevent duplication
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+    
+    newButton.addEventListener("click", function() {
+      const exerciseDiv = this.closest(".exercise-entry");
+      const setRangeContainer = exerciseDiv.querySelector(".set-range-container");
+      
+      // Clone the first set range as a template
+      const firstSetRange = setRangeContainer.querySelector(".set-range");
+      const newSetRange = firstSetRange.cloneNode(true);
+      
+      // Find the previous set range's end value
+      const setRanges = setRangeContainer.querySelectorAll(".set-range");
+      const previousSetRange = setRanges[setRanges.length - 1];
+      const previousEndInput = previousSetRange.querySelector("input[name='set_end[]']");
+      const previousEndValue = previousEndInput ? parseInt(previousEndInput.value) || 0 : 0;
+      
+      // Calculate new start and end values
+      const newStartValue = previousEndValue + 1;
+      const newEndValue = newStartValue + 2; // Default to 3 sets per range
+      
+      // Set input values appropriately
+      newSetRange.querySelectorAll("input").forEach(input => {
+        if (input.name === "set_start[]") {
+          input.value = newStartValue.toString();
+        } else if (input.name === "set_end[]") {
+          input.value = newEndValue.toString();
+        } else {
+          input.value = "";
+        }
+      });
+      
+      // Update the sets count
+      const setsCountElement = newSetRange.querySelector(".sets-count");
+      if (setsCountElement) {
+        setsCountElement.textContent = (newEndValue - newStartValue + 1).toString();
+      }
+      
+      // Add the new set range to the container
+      setRangeContainer.appendChild(newSetRange);
+      
+      // Attach remove listener to the new set range
+      const removeButton = newSetRange.querySelector(".remove-set-range");
+      if (removeButton) {
+        removeButton.addEventListener("click", function() {
+          // Only remove if there's more than one set range
+          if (setRangeContainer.querySelectorAll(".set-range").length > 1) {
+            newSetRange.remove();
+          }
+        });
+      }
+      
+      // Attach input handlers to the new set range
+      attachSetRangeInputHandlers(newSetRange);
+      
+      // Ensure the set count is correct
+      updateSetRangeCounters(exerciseDiv);
+    });
+  });
+  
+  // Add remove listeners to existing set ranges
+  container.querySelectorAll(".remove-set-range").forEach(button => {
+    // Remove existing event listeners to prevent duplication
+    const newButton = button.cloneNode(true);
+    button.parentNode.replaceChild(newButton, button);
+    
+    newButton.addEventListener("click", function() {
+      const setRange = this.closest(".set-range");
+      const setRangeContainer = this.closest(".set-range-container");
+      
+      // Only remove if there's more than one set range
+      if (setRangeContainer.querySelectorAll(".set-range").length > 1) {
+        // Get all set ranges before removal
+        const allSetRanges = Array.from(setRangeContainer.querySelectorAll(".set-range"));
+        const currentIndex = allSetRanges.indexOf(setRange);
+        
+        // Get current range values before removal
+        const startInput = setRange.querySelector("input[name='set_start[]']");
+        const endInput = setRange.querySelector("input[name='set_end[]']");
+        const startValue = parseInt(startInput?.value) || 0;
+        const endValue = parseInt(endInput?.value) || 0;
+        const rangeDiff = (endValue - startValue) + 1;
+        
+        // Remove the current set range
+        setRange.remove();
+        
+        // Adjust subsequent set ranges to maintain continuity
+        if (currentIndex >= 0 && currentIndex < allSetRanges.length - 1) {
+          for (let i = currentIndex + 1; i < allSetRanges.length; i++) {
+            const nextSetRange = allSetRanges[i];
+            const nextStartInput = nextSetRange.querySelector("input[name='set_start[]']");
+            const nextEndInput = nextSetRange.querySelector("input[name='set_end[]']");
+            
+            if (nextStartInput && nextEndInput) {
+              const nextStart = parseInt(nextStartInput.value) || 0;
+              const nextEnd = parseInt(nextEndInput.value) || 0;
+              
+              // Adjust the range by the size of the removed range
+              nextStartInput.value = Math.max(1, nextStart - rangeDiff);
+              nextEndInput.value = Math.max(1, nextEnd - rangeDiff);
+              
+              // Update the sets count display
+              const setsCountElement = nextSetRange.querySelector(".sets-count");
+              if (setsCountElement) {
+                const newCount = parseInt(nextEndInput.value) - parseInt(nextStartInput.value) + 1;
+                setsCountElement.textContent = newCount.toString();
+              }
+            }
+          }
+        }
+        
+        // Update set counters after removal
+        updateSetRangeCounters(setRangeContainer.closest(".exercise-entry") || document);
+      }
     });
   });
 }
@@ -296,6 +421,8 @@ function attachSetRangeInputHandlers(container) {
   const inputSelectors = [
     "input[name='weight[]']", 
     "input[name='reps[]']",   
+    "input[name='set_start[]']",
+    "input[name='set_end[]']",
     // "select[name='rpe[]']", // RPE not directly used in weight calc, but good to re-attach listeners
     "input[type='range']", // For sliders if any are dynamically added with sets
     "input[name='percentage[]']"
@@ -355,16 +482,50 @@ function attachSetRangeInputHandlers(container) {
       }
       
       // For percentage and reps inputs, trigger weight calculation
-      if (newInput.name && (newInput.name.includes('percentage[]') || newInput.name.includes('reps[]'))) {
-        newInput.addEventListener("input", function () {
-          console.log(`Input event on ${this.name}, value: ${this.value}`);
-          const setElement = this.closest(".set-range"); // Corrected class
-          if (setElement) {
-            calculateAndUpdateWeightForSet(setElement);
-          } else {
-            console.warn("Could not find .set-range parent for input:", this);
-          }
-        });
+      if (newInput.name) {
+        // Add input event listeners for set_start and set_end inputs
+        if (newInput.name === 'set_start[]' || newInput.name === 'set_end[]') {
+          newInput.addEventListener("input", function () {
+            console.log(`Input event on ${this.name}, value: ${this.value}`);
+            const setElement = this.closest(".set-range"); // Corrected class
+            if (setElement) {
+              // Get the start and end inputs
+              const startInput = setElement.querySelector("input[name='set_start[]']");
+              const endInput = setElement.querySelector("input[name='set_end[]']");
+            
+              if (startInput && endInput) {
+                const startValue = parseInt(startInput.value) || 1;
+                const endValue = parseInt(endInput.value) || 1;
+              
+                // Enforce relationship: start should never be greater than end
+                if (this.name === 'set_start[]' && startValue > endValue) {
+                  endInput.value = startValue;
+                }
+              
+                // Enforce relationship: end should never be less than start
+                if (this.name === 'set_end[]' && endValue < startValue) {
+                  startInput.value = endValue;
+                }
+              }
+            
+              calculateAndUpdateWeightForSet(setElement);
+              // Update set counters if set_start or set_end changed
+              updateSetRangeCounters(setElement.closest(".exercise-entry") || document);
+            } else {
+              console.warn("Could not find .set-range parent for input:", this);
+            }
+          });
+        } else if (newInput.name.includes('percentage[]') || newInput.name.includes('reps[]')) {
+          newInput.addEventListener("input", function () {
+            console.log(`Input event on ${this.name}, value: ${this.value}`);
+            const setElement = this.closest(".set-range"); // Corrected class
+            if (setElement) {
+              calculateAndUpdateWeightForSet(setElement);
+            } else {
+              console.warn("Could not find .set-range parent for input:", this);
+            }
+          });
+        }
       }
     });
   });
@@ -402,13 +563,26 @@ function attachSetRangeInputHandlers(container) {
 function updateSetRangeCounters(exerciseDiv) {
   if (!exerciseDiv) return;
   
-  const setList = exerciseDiv.querySelector(".set-list");
-  const setCounter = exerciseDiv.querySelector(".set-counter");
+  // Get all set ranges within this exercise
+  const setRanges = exerciseDiv.querySelectorAll(".set-range");
   
-  if (setList && setCounter) {
-    const setCount = setList.querySelectorAll(".set-item").length;
-    setCounter.textContent = `Sets: ${setCount}`;
-  }
+  // Update the count for each set range
+  setRanges.forEach(setRange => {
+    const startInput = setRange.querySelector("input[name='set_start[]']");
+    const endInput = setRange.querySelector("input[name='set_end[]']");
+    const setsCountElement = setRange.querySelector(".sets-count");
+    
+    if (startInput && endInput && setsCountElement) {
+      const start = parseInt(startInput.value) || 0;
+      const end = parseInt(endInput.value) || 0;
+      
+      // Calculate total sets (inclusive range)
+      const totalSets = end >= start ? (end - start + 1) : 0;
+      
+      // Update the displayed count
+      setsCountElement.textContent = totalSets;
+    }
+  });
 }
 
 function updateAllSetRanges() {
@@ -447,6 +621,16 @@ function updateAllSetRanges() {
     
     // Update the set counter
     updateSetRangeCounters(exercise);
+  });
+}
+
+function updateAllSetRangeCounters() {
+  // Get all exercise entries
+  const exerciseEntries = document.querySelectorAll(".exercise-entry");
+  
+  // Update set counts for each exercise entry
+  exerciseEntries.forEach(exerciseEntry => {
+    updateSetRangeCounters(exerciseEntry);
   });
 }
 
