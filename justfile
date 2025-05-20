@@ -1,4 +1,4 @@
-# WLTrak commands
+# WLTrack commands
 #
 # Directory Structure Notes:
 # - Static assets are stored in the 'static' directory
@@ -32,8 +32,8 @@ dev: generate
 # Build container using Docker (for cross-compilation with CGO support)
 build-docker: clean generate
     @echo "Building container with Docker for cross-compilation with CGO..."
-    docker buildx build --platform linux/amd64 -t wltrak:latest .
-    @echo "Container built successfully as 'wltrak:latest'"
+    docker buildx build --platform linux/amd64 -t wltrack:latest .
+    @echo "Container built successfully as 'wltrack:latest'"
 
 
 # Run the application in a Docker container
@@ -45,7 +45,7 @@ run-docker: build-docker
         -e TURSO_AUTH_TOKEN \
         -e PORT="8080" \
         -e ENV="development" \
-        wltrak:latest
+        wltrack:latest
 
 # Run tests
 test: generate
@@ -106,7 +106,7 @@ check: lint test
 
 # Help message (default if no command specified)
 help:
-    @echo "WLTrak Justfile commands:"
+    @echo "WLTrack Justfile commands:"
     @echo "  just              - Clean, generate, and build"
     @echo "  just generate     - Generate templ files"
     @echo "  just build        - Build the Go application and Tailwind CSS (with CGO enabled for SQLite)"

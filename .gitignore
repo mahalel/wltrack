@@ -5,7 +5,7 @@
 *.so
 *.dylib
 /server
-/wltrak
+/wltrack
 
 # Generated templ files
 *_templ.go

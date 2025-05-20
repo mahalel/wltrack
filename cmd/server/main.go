@@ -13,7 +13,7 @@ import (
 	"github.com/mahalel/wltrack/internal/handlers"
 )
 
-// WLTrak - Weightlifting Tracking Application
+// WLTrack - Weightlifting Tracking Application
 //
 // Environment variables:
 // - TURSO_URL: Turso database URL (required)

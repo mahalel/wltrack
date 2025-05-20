@@ -1,13 +1,13 @@
 # GitHub App Authentication Setup
 
-This document explains how to set up GitHub App authentication for user login with WLTrak, following the [official GitHub documentation](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-login-with-github-button-with-a-github-app).
+This document explains how to set up GitHub App authentication for user login with WLTrack, following the [official GitHub documentation](https://docs.github.com/en/apps/creating-github-apps/writing-code-for-a-github-app/building-a-login-with-github-button-with-a-github-app).
 
 ## Creating a GitHub App
 
 1. Go to your GitHub account settings
 2. Select "Developer settings" > "GitHub Apps" > "New GitHub App"
 3. Fill in the required information:
-   - **GitHub App name**: A unique name for your app (e.g., "WLTrak-Auth")
+   - **GitHub App name**: A unique name for your app (e.g., "WLTrack-Auth")
    - **Homepage URL**: Your application's URL
    - **Callback URL**: `http://your-app-url/auth/github/callback` (replace with your actual URL)
    - **Request user authorization (OAuth) during installation**: Check this box
@@ -30,7 +30,7 @@ export AUTH_ENABLED=true
 
 # GitHub App credentials
 export GITHUB_CLIENT_ID="your_client_id_here"
-export GITHUB_CLIENT_SECRET="your_client_secret_here"  
+export GITHUB_CLIENT_SECRET="your_client_secret_here"
 export GITHUB_REDIRECT_URL="http://your-app-url/auth/github/callback"
 export ALLOWED_GITHUB_USERS="your_username,another_username"
 ```

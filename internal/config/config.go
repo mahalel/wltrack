@@ -55,10 +55,10 @@ func Load() Config {
 					log.Println("Using in-memory database as fallback")
 					cfg.TursoURL = "file::memory:?cache=shared"
 				} else {
-					cfg.TursoURL = "file:data/wltrak.db?cache=shared"
+					cfg.TursoURL = "file:data/wltrack.db?cache=shared"
 				}
 			} else {
-				cfg.TursoURL = "file:data/wltrak.db?cache=shared"
+				cfg.TursoURL = "file:data/wltrack.db?cache=shared"
 			}
 		}
 	}

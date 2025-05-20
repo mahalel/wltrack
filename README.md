@@ -1,6 +1,6 @@
-# WLTrak - Weightlifting Tracking Application
+# WLTrack - Weightlifting Tracking Application
 
-WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) for tracking weightlifting progress. It allows users to record their weightlifting workouts, track exercises, and visualize progress over time.
+WLTrack is a minimal web application built with the GOTH stack (Go, templ, HTMX) for tracking weightlifting progress. It allows users to record their weightlifting workouts, track exercises, and visualize progress over time.
 
 ## Features
 
@@ -47,8 +47,8 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
 
 3. Create a Turso database:
    ```
-   turso db create wltrak
-   turso db tokens create wltrak
+   turso db create wltrack
+   turso db tokens create wltrack
    ```
 
 4. Set environment variables in your OS:
@@ -58,7 +58,7 @@ WLTrak is a minimal web application built with the GOTH stack (Go, templ, HTMX) 
    export TURSO_AUTH_TOKEN="your-token"
    ```
 
-   > Note: If you don't set the TURSO_URL, the application will automatically create and use a local SQLite database in the `data/wltrak.db` file. This is convenient for development and testing. You can delete this file at any time to reset your database.
+   > Note: If you don't set the TURSO_URL, the application will automatically create and use a local SQLite database in the `data/wltrack.db` file. This is convenient for development and testing. You can delete this file at any time to reset your database.
 
 5. Generate templ files:
    ```
@@ -138,34 +138,34 @@ The project uses a multi-stage Dockerfile for efficient containerization. The st
 
 2. Create a resource group:
    ```
-   az group create --name wltrak-group --location eastus
+   az group create --name wltrack-group --location eastus
    ```
 
 3. Create a container registry:
    ```
-   az acr create --resource-group wltrak-group --name wltrakregistry --sku Basic
+   az acr create --resource-group wltrack-group --name wltrackregistry --sku Basic
    ```
 
 4. Login to your registry:
    ```
-   az acr login --name wltrakregistry
+   az acr login --name wltrackregistry
    ```
 
 5. Build and push the Docker image:
    ```
-   docker build -t wltrakregistry.azurecr.io/wltrak:latest .
-   docker push wltrakregistry.azurecr.io/wltrak:latest
+   docker build -t wltrackregistry.azurecr.io/wltrack:latest .
+   docker push wltrackregistry.azurecr.io/wltrack:latest
    ```
 
 6. Create and update a container app:
    ```
    # Create the initial app
    az containerapp create \
-     --name wltrak \
-     --resource-group wltrak-group \
-     --environment wltrak-env \
-     --registry-server wltrakregistry.azurecr.io \
-     --image wltrakregistry.azurecr.io/wltrak:latest \
+     --name wltrack \
+     --resource-group wltrack-group \
+     --environment wltrack-env \
+     --registry-server wltrackregistry.azurecr.io \
+     --image wltrackregistry.azurecr.io/wltrack:latest \
      --target-port 8080 \
      --ingress external \
      --env-vars TURSO_URL="libsql://your-database-url.turso.io" TURSO_AUTH_TOKEN="your-token"
@@ -195,7 +195,7 @@ Note: The project can also be published to GitHub Container Registry (GHCR) usin
 ├── .github/workflows   # GitHub Actions CI/CD workflows
 │   ├── ci.yml          # Lint, format, and test workflow
 │   └── publish-container.yml # Container publishing workflow
-├── Dockerfile          # Docker build configuration 
+├── Dockerfile          # Docker build configuration
 └── justfile            # Command runner for building, testing, and linting
 ```
 
@@ -245,7 +245,7 @@ just show-env
 
 ## Authentication with GitHub App
 
-WLTrak supports authentication using GitHub Apps for user login. To set up GitHub App authentication:
+WLTrack supports authentication using GitHub Apps for user login. To set up GitHub App authentication:
 
 1. Create a GitHub App in your GitHub account settings
 2. Configure the OAuth settings for the app
