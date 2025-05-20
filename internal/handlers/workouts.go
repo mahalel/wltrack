@@ -181,7 +181,7 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 			// Process each set range for this exercise
 			totalSets := 0
 			var maxWeight float64 = 0
-			var repsAtMaxWeight int = 0
+			var repsAtMaxWeight = 0
 
 			// For each set range in the current exercise
 			for rangeIdx := 0; rangeIdx < len(setStarts) && rangeIdx < len(setEnds) && rangeIdx < len(reps); rangeIdx++ {
@@ -425,7 +425,7 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 			// Process each set range for this exercise
 			totalSets := 0
 			var maxWeight float64 = 0
-			var repsAtMaxWeight int = 0
+			var repsAtMaxWeight = 0
 
 			// For each set range in the current exercise
 			for rangeIdx := 0; rangeIdx < len(setStarts) && rangeIdx < len(setEnds) && rangeIdx < len(reps); rangeIdx++ {
@@ -513,7 +513,10 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 		if err := templates.FormSuccess("Workout updated successfully! Page will refresh...").Render(r.Context(), w); err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		}
-		fmt.Fprintf(w, "<script>setTimeout(function() { window.location.href = '/workouts/%d'; }, 800);</script>", id)
+		if _, err := fmt.Fprintf(w, "<script>setTimeout(function() { window.location.href = '/workouts/%d'; }, 800);</script>", id); err != nil {
+			http.Error(w, "Error writing response", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 

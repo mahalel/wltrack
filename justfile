@@ -77,6 +77,10 @@ format:
     @echo "Vetting code..."
     go vet ./...
 
+lint:
+    @echo "Linting code..."
+    golangci-lint run
+
 # Setup development environment
 setup:
     @echo "Setting up development environment..."
@@ -116,6 +120,7 @@ help:
     @echo "  just test-coverage - Run tests with coverage report"
     @echo "  just clean        - Clean build artifacts"
     @echo "  just format       - Format the code"
+    @echo "  just lint         - Lint the code"
     @echo "  just check        - Run all checks (format, lint, test)"
     @echo "  just setup        - Setup development environment"
     @echo "  just show-env     - Show current OS environment variables"

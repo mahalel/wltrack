@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,19 +16,35 @@ import (
 
 func TestMain(m *testing.M) {
 	// Set up test environment variables
-	os.Setenv("TURSO_URL", "file:test.db?mode=memory")
-	os.Setenv("TURSO_AUTH_TOKEN", "")
-	os.Setenv("PORT", "8888")
-	os.Setenv("ENV", "test")
+	if err := os.Setenv("TURSO_URL", "file:test.db?mode=memory"); err != nil {
+		panic(err)
+	}
+	if err := os.Setenv("TURSO_AUTH_TOKEN", ""); err != nil {
+		panic(err)
+	}
+	if err := os.Setenv("PORT", "8888"); err != nil {
+		panic(err)
+	}
+	if err := os.Setenv("ENV", "test"); err != nil {
+		panic(err)
+	}
 
 	// Run the tests
 	exitCode := m.Run()
 
 	// Clean up
-	os.Unsetenv("TURSO_URL")
-	os.Unsetenv("TURSO_AUTH_TOKEN")
-	os.Unsetenv("PORT")
-	os.Unsetenv("ENV")
+	if err := os.Unsetenv("TURSO_URL"); err != nil {
+		fmt.Printf("Failed to unset TURSO_URL: %v\n", err)
+	}
+	if err := os.Unsetenv("TURSO_AUTH_TOKEN"); err != nil {
+		fmt.Printf("Failed to unset TURSO_AUTH_TOKEN: %v\n", err)
+	}
+	if err := os.Unsetenv("PORT"); err != nil {
+		fmt.Printf("Failed to unset PORT: %v\n", err)
+	}
+	if err := os.Unsetenv("ENV"); err != nil {
+		fmt.Printf("Failed to unset ENV: %v\n", err)
+	}
 
 	os.Exit(exitCode)
 }
@@ -97,13 +114,14 @@ func TestServerStartup(t *testing.T) {
 func TestHealthEndpoints(t *testing.T) {
 	// Create a test server
 	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/health/live" {
+		switch r.URL.Path {
+		case "/health/live":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"status":"ok"}`))
-		} else if r.URL.Path == "/health/ready" {
+		case "/health/ready":
 			w.WriteHeader(http.StatusOK)
 			_, _ = w.Write([]byte(`{"status":"ready"}`))
-		} else {
+		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}))
@@ -122,7 +140,11 @@ func TestHealthEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to make request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)
@@ -138,7 +160,11 @@ func TestHealthEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to make request: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			t.Logf("Failed to close response body: %v", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status code %d, got %d", http.StatusOK, resp.StatusCode)

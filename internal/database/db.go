@@ -135,7 +135,11 @@ func (db *DB) GetAllExercises() ([]models.Exercise, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	var exercises []models.Exercise
 	for rows.Next() {
@@ -268,7 +272,11 @@ func (db *DB) GetWorkouts() ([]models.Workout, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	var workouts []models.Workout
 	for rows.Next() {
@@ -310,7 +318,11 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 	if err != nil {
 		return result, err
 	}
-	defer exercisesRows.Close()
+	defer func() {
+		if err := exercisesRows.Close(); err != nil {
+			log.Printf("Error closing exercise rows: %v", err)
+		}
+	}()
 
 	for exercisesRows.Next() {
 		var ex models.ExerciseWithSets
@@ -344,13 +356,17 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 		for setsRows.Next() {
 			var s models.Set
 			if err := setsRows.Scan(&s.ID, &s.Reps, &s.Weight, &s.PercentageOfMax, &s.SetOrder); err != nil {
-				setsRows.Close()
+				if err := setsRows.Close(); err != nil {
+					log.Printf("Error closing sets rows: %v", err)
+				}
 				return result, err
 			}
 			s.WorkoutExerciseID = we.ID
 			sets = append(sets, s)
 		}
-		setsRows.Close()
+		if err := setsRows.Close(); err != nil {
+			log.Printf("Error closing sets rows: %v", err)
+		}
 
 		ex.Sets = sets
 		result.Exercises = append(result.Exercises, ex)
@@ -372,7 +388,11 @@ func (db *DB) GetExerciseHistory(exerciseID int64) ([]models.WorkoutExercise, er
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	var history []models.WorkoutExercise
 	for rows.Next() {
@@ -400,7 +420,11 @@ func (db *DB) GetExerciseSetsForWorkout(workoutExerciseID int64) ([]models.Set, 
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	var sets []models.Set
 	for rows.Next() {
@@ -433,7 +457,11 @@ func (db *DB) DeleteExercise(exerciseID int64) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	// Delete all sets for each workout_exercise
 	for rows.Next() {
@@ -447,7 +475,9 @@ func (db *DB) DeleteExercise(exerciseID int64) error {
 			return err
 		}
 	}
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		log.Printf("Error closing rows: %v", err)
+	}
 
 	// Delete all workout_exercises for this exercise
 	_, err = tx.ExecContext(ctx, `DELETE FROM workout_exercises WHERE exercise_id = ?`, exerciseID)
@@ -488,7 +518,11 @@ func (db *DB) DeleteWorkout(workoutID int64) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	// Delete all sets for each workout_exercise
 	for rows.Next() {
@@ -502,7 +536,9 @@ func (db *DB) DeleteWorkout(workoutID int64) error {
 			return err
 		}
 	}
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		log.Printf("Error closing rows: %v", err)
+	}
 
 	// Delete all workout_exercises for this workout
 	_, err = tx.ExecContext(ctx, `DELETE FROM workout_exercises WHERE workout_id = ?`, workoutID)
@@ -537,7 +573,11 @@ func (db *DB) DeleteWorkoutExercisesAndSets(workoutID int64) error {
 	if err != nil {
 		return err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Error closing rows: %v", err)
+		}
+	}()
 
 	// Delete all sets for each workout_exercise
 	for rows.Next() {
@@ -551,7 +591,9 @@ func (db *DB) DeleteWorkoutExercisesAndSets(workoutID int64) error {
 			return err
 		}
 	}
-	rows.Close()
+	if err := rows.Close(); err != nil {
+		log.Printf("Error closing rows: %v", err)
+	}
 
 	// Delete all workout_exercises for this workout
 	_, err = tx.ExecContext(ctx, `DELETE FROM workout_exercises WHERE workout_id = ?`, workoutID)
