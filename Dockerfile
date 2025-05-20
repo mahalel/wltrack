@@ -15,14 +15,15 @@ RUN npm install
 # Install templ before copying the rest of the files for better caching
 RUN go install github.com/a-h/templ/cmd/templ@latest
 
-# Copy only necessary files for template generation
-COPY internal/templates/ ./internal/templates/
-RUN templ generate
-
-# Copy the rest of the application source code
+# Copy all necessary code files
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
 COPY src/ ./src/
+
+# Generate templates after all source code is copied
+RUN templ generate
+
+# No need to copy code files again as they're already copied above
 
 # Build Tailwind CSS and JavaScript bundle
 RUN npm run build
