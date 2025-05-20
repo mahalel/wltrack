@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -550,13 +551,18 @@ func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 		idStr := r.PathValue("id")
 		id, err := strconv.ParseInt(idStr, 10, 64)
 		if err != nil {
-			http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode([]map[string]interface{}{}) // Return empty array instead of error
 			return
 		}
 
 		history, err := db.GetExerciseHistory(id)
 		if err != nil {
-			http.Error(w, "Failed to fetch exercise history", http.StatusInternalServerError)
+			// Return empty array instead of error
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode([]map[string]interface{}{})
 			return
 		}
 
@@ -572,11 +578,14 @@ func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 		for _, workoutExercise := range history {
 			sets, err := db.GetExerciseSetsForWorkout(workoutExercise.ID)
 			if err != nil {
+				// Skip this workout but log the error
+				log.Printf("Error fetching sets for workout exercise %d: %v", workoutExercise.ID, err)
 				continue
 			}
 
-			var weights []float64
-			var reps []int
+			// Initialize with empty arrays (not nil)
+			weights := []float64{}
+			reps := []int{}
 
 			for _, set := range sets {
 				weights = append(weights, set.Weight)
@@ -620,10 +629,18 @@ func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 			})
 		}
 
+		// Ensure we always send a valid array, even if empty
+		if chartData == nil {
+			chartData = []ChartData{}
+		}
+
 		// Respond with JSON
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(chartData); err != nil {
-			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+			// If encoding fails, return an empty array
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode([]map[string]interface{}{})
 			return
 		}
 	}

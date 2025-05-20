@@ -41,9 +41,10 @@ Thumbs.db
 /build
 /dist
 
-# Generated CSS files
+# Generated files
 static/css/tailwind.css
 static/css/tailwind.min.css
+static/js/main.js
 
 # Log files
 *.log

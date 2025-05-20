@@ -24,8 +24,8 @@ COPY cmd/ ./cmd/
 COPY internal/ ./internal/
 COPY src/ ./src/
 
-# Build Tailwind CSS
-RUN npm run minify:css
+# Build Tailwind CSS and JavaScript bundle
+RUN npm run build
 
 # Build the application with CGO enabled and optimized flags
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \
@@ -46,8 +46,9 @@ COPY --from=builder /app/bin/server /server
 # Copy static files from host
 COPY static/ /static/
 
-# Copy generated tailwind CSS from builder stage
+# Copy generated files from builder stage
 COPY --from=builder /app/static/css/tailwind.css /static/css/tailwind.css
+COPY --from=builder /app/static/js/main.js /static/js/main.js
 
 # Set environment variables
 ENV PORT=8080
