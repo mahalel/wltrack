@@ -19,14 +19,19 @@ RUN go install github.com/a-h/templ/cmd/templ@latest
 COPY cmd/ ./cmd/
 COPY internal/ ./internal/
 COPY src/ ./src/
+COPY tailwind.config.js ./
+COPY scripts/ ./scripts/
 
 # Generate templates after all source code is copied
 RUN templ generate
 
 # No need to copy code files again as they're already copied above
 
-# Build Tailwind CSS and JavaScript bundle
-RUN npm run build
+# Build JavaScript bundle first
+RUN npm run build:js
+
+# Run Tailwind CSS build after template generation to ensure it picks up all classes
+RUN npm run build:css
 
 # Build the application with CGO enabled and optimized flags
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 go build \

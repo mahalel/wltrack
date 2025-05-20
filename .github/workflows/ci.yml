@@ -60,9 +60,3 @@ jobs:
         run: |
           go test -race -coverprofile=coverage.txt -covermode=atomic ./...
           # Equivalent to "just test-race" but with specific coverage output format for CI
-
-      - name: Upload coverage report
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./coverage.txt
-          fail_ci_if_error: false
