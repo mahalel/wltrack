@@ -113,6 +113,7 @@ func (db *DB) SetupDB() error {
 			weight REAL NOT NULL,
 			percentage_of_max REAL,
 			set_order INTEGER NOT NULL,
+			range_id TEXT,
 			FOREIGN KEY (workout_exercise_id) REFERENCES workout_exercises(id)
 		)
 	`)
@@ -252,12 +253,12 @@ func (db *DB) AddWorkoutExercise(workoutID, exerciseID int64, notes string) (int
 }
 
 // AddSet adds a set to a workout exercise
-func (db *DB) AddSet(workoutExerciseID int64, reps int, weight float64, percentageOfMax float64, setOrder int) (int64, error) {
+func (db *DB) AddSet(workoutExerciseID int64, reps int, weight float64, percentageOfMax float64, setOrder int, rangeID string) (int64, error) {
 	ctx := context.Background()
 	result, err := db.db.ExecContext(ctx,
-		`INSERT INTO sets (workout_exercise_id, reps, weight, percentage_of_max, set_order) 
-		 VALUES (?, ?, ?, ?, ?)`,
-		workoutExerciseID, reps, weight, percentageOfMax, setOrder,
+		`INSERT INTO sets (workout_exercise_id, reps, weight, percentage_of_max, set_order, range_id) 
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		workoutExerciseID, reps, weight, percentageOfMax, setOrder, rangeID,
 	)
 	if err != nil {
 		return 0, err
@@ -343,7 +344,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 
 		// Get sets for this exercise
 		setsRows, err := db.db.QueryContext(ctx, `
-			SELECT id, reps, weight, percentage_of_max, set_order
+			SELECT id, reps, weight, percentage_of_max, set_order, range_id
 			FROM sets
 			WHERE workout_exercise_id = ?
 			ORDER BY set_order
@@ -355,7 +356,7 @@ func (db *DB) GetWorkoutDetails(workoutID int64) (models.WorkoutWithExercises, e
 		var sets []models.Set
 		for setsRows.Next() {
 			var s models.Set
-			if err := setsRows.Scan(&s.ID, &s.Reps, &s.Weight, &s.PercentageOfMax, &s.SetOrder); err != nil {
+			if err := setsRows.Scan(&s.ID, &s.Reps, &s.Weight, &s.PercentageOfMax, &s.SetOrder, &s.RangeID); err != nil {
 				if err := setsRows.Close(); err != nil {
 					log.Printf("Error closing sets rows: %v", err)
 				}

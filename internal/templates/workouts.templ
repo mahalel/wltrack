@@ -2,6 +2,7 @@ package templates
 
 import (
 	"github.com/mahalel/wltrack/internal/models"
+	"sort"
 	"strconv"
 )
 
@@ -142,6 +143,7 @@ templ WorkoutForm(exercises []models.Exercise) {
 								<h3 class="text-md font-medium mb-2">Sets</h3>
 								<div class="set-range-container space-y-5">
 									<div class="set-range border border-gray-200 rounded p-3">
+										<input type="hidden" name="range_id[]" value="range1" class="range-identifier" />
 										<div class="grid grid-cols-2 gap-3 mb-3">
 											<div>
 												<label class="block text-xs font-medium text-gray-700 mb-1">Sets (range)</label>
@@ -303,13 +305,13 @@ templ WorkoutEditForm(workout models.WorkoutWithExercises, allExercises []models
 														<div class="flex items-center gap-2">
 															<input type="number" name="set_start[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
 															<span class="text-gray-500">to</span>
-															<input type="number" name="set_end[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+															<input type="number" name="set_end[]" required min="1" value="3" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
 														</div>
 													</div>
 													<div>
 														<label class="block text-xs font-medium text-gray-700 mb-1">Total Sets</label>
 														<div class="text-sm bg-gray-100 py-2 px-3 rounded text-gray-700 mt-1 h-10 flex items-center">
-															<span class="sets-count">1</span> sets
+															<span class="sets-count">3</span> sets
 														</div>
 													</div>
 												</div>
@@ -338,47 +340,53 @@ templ WorkoutEditForm(workout models.WorkoutWithExercises, allExercises []models
 												</div>
 											</div>
 										} else {
-											<div class="set-range border border-gray-200 rounded p-3">
-												<div class="grid grid-cols-2 gap-3 mb-3">
-													<div>
-														<label class="block text-xs font-medium text-gray-700 mb-1">Sets (range)</label>
-														<div class="flex items-center gap-2">
-															<input type="number" name="set_start[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
-															<span class="text-gray-500">to</span>
-															<input type="number" name="set_end[]" required min="1" value="1" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+											// Group and display sets by their range_id
+												for _, rangeGroup := range groupSetsByRangeID(exerciseData.Sets) {
+											
+														<div class="set-range border border-gray-200 rounded p-3">
+															<input type="hidden" name="range_id[]" value={ rangeGroup.RangeID } class="range-identifier" />
+															<div class="grid grid-cols-2 gap-3 mb-3">
+																<div>
+																	<label class="block text-xs font-medium text-gray-700 mb-1">Sets (range)</label>
+																	<div class="flex items-center gap-2">
+																		<input type="number" name="set_start[]" required min="1" value={ strconv.Itoa(rangeGroup.MinSet) } class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+																		<span class="text-gray-500">to</span>
+																		<input type="number" name="set_end[]" required min="1" value={ strconv.Itoa(rangeGroup.MaxSet) } class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+																	</div>
+																</div>
+																<div>
+																	<label class="block text-xs font-medium text-gray-700 mb-1">Total Sets</label>
+																	<div class="text-sm bg-gray-100 py-2 px-3 rounded text-gray-700 mt-1 h-10 flex items-center">
+																		<span class="sets-count">{ strconv.Itoa(len(rangeGroup.Sets)) }</span> sets
+																	</div>
+																</div>
+															</div>
+												
+															<div class="grid grid-cols-3 gap-3">
+																<div>
+																	<label class="block text-xs font-medium text-gray-700 mb-1">Reps</label>
+																	<input type="number" name="reps[]" required min="1" value={ strconv.Itoa(rangeGroup.Sets[0].Reps) } class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+																</div>
+																<div>
+																	<label class="block text-xs font-medium text-gray-700 mb-1">% of 1RM</label>
+																	<input type="number" name="percentage[]" min="0" max="100" step="5" value={ strconv.Itoa(int(rangeGroup.Sets[0].PercentageOfMax)) } class="percentage-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+																</div>
+																<div>
+																	<label class="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</label>
+																	<input type="number" name="weight[]" required min="0" step="5" value={ strconv.FormatFloat(rangeGroup.Sets[0].Weight, 'f', 0, 64) } class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
+																	<div class="text-xs text-gray-600 italic mt-1">Heavy sets may update your 1RM</div>
+																</div>
+															</div>
+															<div class="mt-2 flex justify-end">
+																<button type="button" class="remove-set-range text-red-600 text-sm hover:underline flex items-center">
+																	<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+																		<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+																	</svg>
+																	Remove
+																</button>
+															</div>
 														</div>
-													</div>
-													<div>
-														<label class="block text-xs font-medium text-gray-700 mb-1">Total Sets</label>
-														<div class="text-sm bg-gray-100 py-2 px-3 rounded text-gray-700 mt-1 h-10 flex items-center">
-															<span class="sets-count">1</span> sets
-														</div>
-													</div>
-												</div>
-												<div class="grid grid-cols-3 gap-3">
-													<div>
-														<label class="block text-xs font-medium text-gray-700 mb-1">Reps</label>
-														<input type="number" name="reps[]" required min="1" value={ strconv.Itoa(exerciseData.Sets[0].Reps) } class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
-													</div>
-													<div>
-														<label class="block text-xs font-medium text-gray-700 mb-1">% of 1RM</label>
-														<input type="number" name="percentage[]" min="0" max="100" step="5" value={ strconv.Itoa(int(exerciseData.Sets[0].PercentageOfMax)) } class="percentage-input w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
-													</div>
-													<div>
-														<label class="block text-xs font-medium text-gray-700 mb-1">Weight (kg)</label>
-														<input type="number" name="weight[]" required min="0" step="5" value={ strconv.FormatFloat(exerciseData.Sets[0].Weight, 'f', 0, 64) } class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"/>
-														<div class="text-xs text-gray-600 italic mt-1">Heavy sets may update your 1RM</div>
-													</div>
-												</div>
-												<div class="mt-2 flex justify-end">
-													<button type="button" class="remove-set-range text-red-600 text-sm hover:underline flex items-center">
-														<svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-															<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-														</svg>
-														Remove
-													</button>
-												</div>
-											</div>
+												}
 										}
 									</div>
 									<button type="button" class="add-set-range mt-2 text-blue-600 text-sm hover:underline flex items-center">
@@ -472,19 +480,30 @@ templ WorkoutDetail(workout models.WorkoutWithExercises) {
 											<td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No sets recorded</td>
 										</tr>
 									} else {
-										for _, set := range exercise.Sets {
-											<tr>
-												<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ set.SetOrder }</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ set.Reps }</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ set.Weight }</td>
-												<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-													if set.PercentageOfMax > 0 {
-														{ set.PercentageOfMax }%
-													} else {
-														-
-													}
+										// Display sets grouped by range
+										for _, rangeGroup := range groupSetsByRangeID(exercise.Sets) {
+											// Display a range header
+											<tr class="bg-gray-50">
+												<td colspan="4" class="px-6 py-2 text-xs font-medium text-gray-500">
+													Range: { rangeGroup.MinSet } - { rangeGroup.MaxSet }
 												</td>
 											</tr>
+											
+											// Display each set in the range
+											for _, set := range rangeGroup.Sets {
+												<tr>
+													<td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{ set.SetOrder }</td>
+													<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ set.Reps }</td>
+													<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{ set.Weight }</td>
+													<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+														if set.PercentageOfMax > 0 {
+															{ set.PercentageOfMax }%
+														} else {
+															-
+														}
+													</td>
+												</tr>
+											}
 										}
 									}
 								</tbody>
@@ -498,3 +517,68 @@ templ WorkoutDetail(workout models.WorkoutWithExercises) {
 }
 
 // ExerciseCount is defined in components.templ
+
+// SetRangeGroup represents a group of sets with the same range ID
+type SetRangeGroup struct {
+	RangeID string
+	Sets    []models.Set
+	MinSet  int
+	MaxSet  int
+}
+
+// groupSetsByRangeID groups sets by their range_id and calculates min/max set numbers
+func groupSetsByRangeID(sets []models.Set) []SetRangeGroup {
+	// Group sets by their range_id
+	rangeGroups := make(map[string][]models.Set)
+
+	for _, set := range sets {
+		// Default to "range1" if no range_id is set
+		rangeID := set.RangeID
+		if rangeID == "" {
+			rangeID = "range1"
+		}
+		rangeGroups[rangeID] = append(rangeGroups[rangeID], set)
+	}
+
+	// Create ordered result
+	result := make([]SetRangeGroup, 0, len(rangeGroups))
+	
+	// Get all range keys
+	rangeKeys := make([]string, 0, len(rangeGroups))
+	for k := range rangeGroups {
+		rangeKeys = append(rangeKeys, k)
+	}
+	
+	// Sort range keys to maintain consistent order
+	sort.Strings(rangeKeys)
+	
+	// Process each range
+	for _, rangeID := range rangeKeys {
+		groupSets := rangeGroups[rangeID]
+		if len(groupSets) == 0 {
+			continue
+		}
+		
+		// Find min and max set numbers
+		minSet := groupSets[0].SetOrder
+		maxSet := groupSets[0].SetOrder
+		
+		for _, set := range groupSets {
+			if set.SetOrder < minSet {
+				minSet = set.SetOrder
+			}
+			if set.SetOrder > maxSet {
+				maxSet = set.SetOrder
+			}
+		}
+		
+		result = append(result, SetRangeGroup{
+			RangeID: rangeID,
+			Sets:    groupSets,
+			MinSet:  minSet,
+			MaxSet:  maxSet,
+		})
+	}
+	
+	return result
+}

@@ -17564,12 +17564,25 @@
         const previousEndValue = previousEndInput ? parseInt(previousEndInput.value) || 0 : 0;
         const newStartValue = previousEndValue + 1;
         const newEndValue = newStartValue + 2;
+        let highestRangeNumber = 0;
+        setRanges.forEach((range) => {
+          const rangeIdInput = range.querySelector("input[name='range_id[]']");
+          if (rangeIdInput && rangeIdInput.value.startsWith("range")) {
+            const rangeNumber = parseInt(rangeIdInput.value.replace("range", "")) || 0;
+            if (rangeNumber > highestRangeNumber) {
+              highestRangeNumber = rangeNumber;
+            }
+          }
+        });
+        const newRangeId = "range" + (highestRangeNumber + 1);
         newSetRange.querySelectorAll("input").forEach((input) => {
           if (input.name === "set_start[]") {
             input.value = newStartValue.toString();
           } else if (input.name === "set_end[]") {
             input.value = newEndValue.toString();
-          } else {
+          } else if (input.name === "range_id[]") {
+            input.value = newRangeId;
+          } else if (input.name !== "exercise_id[]" && input.name !== "existing_workout_exercise_id[]") {
             input.value = "";
           }
         });

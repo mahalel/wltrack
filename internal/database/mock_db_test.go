@@ -113,11 +113,11 @@ func TestMockDBWorkflowWithRelationships(t *testing.T) {
 	}
 
 	// 6. Add sets to workout exercise
-	_, err = db.AddSet(workoutExerciseID, 5, 185.0, 80.0, 1)
+	_, err = db.AddSet(workoutExerciseID, 5, 185.0, 80.0, 1, "range1")
 	if err != nil {
 		t.Fatalf("Failed to add first set: %v", err)
 	}
-	_, err = db.AddSet(workoutExerciseID, 5, 205.0, 90.0, 2)
+	_, err = db.AddSet(workoutExerciseID, 5, 205.0, 90.0, 2, "range1")
 	if err != nil {
 		t.Fatalf("Failed to add second set: %v", err)
 	}

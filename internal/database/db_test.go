@@ -203,7 +203,7 @@ func TestWorkoutCRUD(t *testing.T) {
 	}
 
 	// Test AddSet
-	setID, err := db.AddSet(workoutExerciseID, 5, 135.0, 75.0, 1)
+	setID, err := db.AddSet(workoutExerciseID, 5, 135.0, 75.0, 1, "range1")
 	if err != nil {
 		t.Fatalf("Failed to add set: %v", err)
 	}
@@ -281,12 +281,12 @@ func TestExerciseHistory(t *testing.T) {
 	}
 
 	// Add sets to both workout exercises
-	_, err = db.AddSet(we1ID, 5, 0.0, 0.0, 1)
+	_, err = db.AddSet(we1ID, 5, 0.0, 0.0, 1, "range1")
 	if err != nil {
 		t.Fatalf("Failed to add set to first workout: %v", err)
 	}
 
-	_, err = db.AddSet(we2ID, 8, 0.0, 0.0, 1)
+	_, err = db.AddSet(we2ID, 8, 0.0, 0.0, 1, "range1")
 	if err != nil {
 		t.Fatalf("Failed to add set to second workout: %v", err)
 	}

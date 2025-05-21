@@ -44,6 +44,7 @@ type Set struct {
 	Weight            float64 `json:"weight"` // in kg
 	PercentageOfMax   float64 `json:"percentage_of_max,omitempty"`
 	SetOrder          int     `json:"set_order"` // To track the order of sets
+	RangeID           string  `json:"range_id,omitempty"` // To group sets into ranges
 }
 
 // ExerciseWithSets is a helper struct for returning an exercise with all its sets

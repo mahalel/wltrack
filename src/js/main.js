@@ -173,13 +173,30 @@ function attachAddSetRangeListeners(container) {
       const newStartValue = previousEndValue + 1;
       const newEndValue = newStartValue + 2; // Default to 3 sets per range
       
+      // Find the highest range ID number currently in use
+      let highestRangeNumber = 0;
+      setRanges.forEach(range => {
+        const rangeIdInput = range.querySelector("input[name='range_id[]']");
+        if (rangeIdInput && rangeIdInput.value.startsWith('range')) {
+          const rangeNumber = parseInt(rangeIdInput.value.replace('range', '')) || 0;
+          if (rangeNumber > highestRangeNumber) {
+            highestRangeNumber = rangeNumber;
+          }
+        }
+      });
+      
+      // Create a unique range identifier
+      const newRangeId = "range" + (highestRangeNumber + 1);
+      
       // Set input values appropriately
       newSetRange.querySelectorAll("input").forEach(input => {
         if (input.name === "set_start[]") {
           input.value = newStartValue.toString();
         } else if (input.name === "set_end[]") {
           input.value = newEndValue.toString();
-        } else {
+        } else if (input.name === "range_id[]") {
+          input.value = newRangeId;
+        } else if (input.name !== "exercise_id[]" && input.name !== "existing_workout_exercise_id[]") {
           input.value = "";
         }
       });

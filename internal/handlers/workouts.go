@@ -179,6 +179,9 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 				return
 			}
 
+			// Get the range identifiers
+			rangeIDs := r.Form["range_id[]"]
+
 			// Process each set range for this exercise
 			totalSets := 0
 			var maxWeight float64 = 0
@@ -233,9 +236,15 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 					}
 				}
 
+				// Determine range ID for this set range
+				rangeID := fmt.Sprintf("range%d", rangeIdx+1)
+				if rangeIdx < len(rangeIDs) && rangeIDs[rangeIdx] != "" {
+					rangeID = rangeIDs[rangeIdx]
+				}
+
 				// Create each set in the range
 				for setOrder := startSet; setOrder <= endSet; setOrder++ {
-					_, err = db.AddSet(workoutExerciseID, repCount, weight, percentage, setOrder)
+					_, err = db.AddSet(workoutExerciseID, repCount, weight, percentage, setOrder, rangeID)
 					if err != nil {
 						if err := templates.FormError("Failed to add set: "+err.Error()).Render(r.Context(), w); err != nil {
 							http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -362,6 +371,9 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 			}
 			return
 		}
+			
+		// Get range identifiers
+		rangeIDs := r.Form["range_id[]"]
 
 		// Delete existing workout exercises and sets
 		err = db.DeleteWorkoutExercisesAndSets(id)
@@ -477,9 +489,15 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 					}
 				}
 
+				// Determine range ID for this set range
+				rangeID := fmt.Sprintf("range%d", rangeIdx+1)
+				if rangeIdx < len(rangeIDs) && rangeIDs[rangeIdx] != "" {
+					rangeID = rangeIDs[rangeIdx]
+				}
+
 				// Create each set in the range
 				for setOrder := startSet; setOrder <= endSet; setOrder++ {
-					_, err = db.AddSet(workoutExerciseID, repCount, weight, percentage, setOrder)
+					_, err = db.AddSet(workoutExerciseID, repCount, weight, percentage, setOrder, rangeID)
 					if err != nil {
 						if err := templates.FormError("Failed to add set: "+err.Error()).Render(r.Context(), w); err != nil {
 							http.Error(w, "Error rendering template", http.StatusInternalServerError)

@@ -190,7 +190,7 @@ func (db *MockDB) AddWorkoutExercise(workoutID, exerciseID int64, notes string) 
 }
 
 // AddSet adds a set to a workout exercise
-func (db *MockDB) AddSet(workoutExerciseID int64, reps int, weight float64, percentageOfMax float64, setOrder int) (int64, error) {
+func (db *MockDB) AddSet(workoutExerciseID int64, reps int, weight float64, percentageOfMax float64, setOrder int, rangeID string) (int64, error) {
 	if _, ok := db.workoutExercises[workoutExerciseID]; !ok {
 		return 0, sql.ErrNoRows
 	}
@@ -203,6 +203,7 @@ func (db *MockDB) AddSet(workoutExerciseID int64, reps int, weight float64, perc
 		Weight:            weight,
 		PercentageOfMax:   percentageOfMax,
 		SetOrder:          setOrder,
+		RangeID:           rangeID,
 	}
 	db.setID++
 	return id, nil
