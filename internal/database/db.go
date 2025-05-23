@@ -276,7 +276,7 @@ func (db *DB) GetExercise(id int64) (models.Exercise, error) {
 }
 
 // AddExercise adds a new exercise
-func (db *DB) AddExercise(name, current1RM float64, notes string) (int64, error) {
+func (db *DB) AddExercise(name string, current1RM float64, notes string) (int64, error) {
 	ctx := context.Background()
 	result, err := db.db.ExecContext(ctx,
 		`INSERT INTO exercises (name, current_1rm, notes) VALUES (?, ?, ?)`,
@@ -346,7 +346,7 @@ func (db *DB) GetLatestOneRepMax(exerciseID int64) (models.OneRepMax, error) {
 }
 
 // UpdateExercise updates an existing exercise
-func (db *DB) UpdateExercise(id int64, name, current1RM float64, notes string) error {
+func (db *DB) UpdateExercise(id int64, name string, current1RM float64, notes string) error {
 	ctx := context.Background()
 	_, err := db.db.ExecContext(ctx,
 		`UPDATE exercises SET name = ?, current_1rm = ?, notes = ? WHERE exercise_id = ?`,

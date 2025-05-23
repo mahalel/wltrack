@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -51,13 +50,6 @@ func EditExerciseHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		// Get the current 1RM value if available
-		oneRepMax, err := db.GetLatestOneRepMax(id)
-		if err == nil {
-			// Add the 1RM value to the form
-			exercise.OneRepMax = oneRepMax.Weight
-		}
-
 		if err := templates.ExerciseForm(&exercise).Render(r.Context(), w); err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
 			return
@@ -81,16 +73,17 @@ func ExerciseDetailHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		oneRepMax, err := db.GetLatestOneRepMax(id)
+		// Get 1RM history
+		oneRepMaxHistory, err := db.GetLatestOneRepMax(id)
 		if err != nil {
-			// No OneRepMax found, that's okay
+			// No OneRepMax history found, that's okay - we'll use the current_1rm from the exercise
 			if err := templates.ExerciseDetail(exercise, nil).Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
 			}
 			return
 		}
 
-		if err := templates.ExerciseDetail(exercise, &oneRepMax).Render(r.Context(), w); err != nil {
+		if err := templates.ExerciseDetail(exercise, &oneRepMaxHistory).Render(r.Context(), w); err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
 			return
 		}
@@ -109,7 +102,20 @@ func CreateExerciseHandler(db *database.DB) http.HandlerFunc {
 		}
 
 		name := r.FormValue("name")
-		description := r.FormValue("description")
+		notes := r.FormValue("notes")
+
+		// Parse 1RM if provided
+		var current1RM float64
+		current1RMStr := r.FormValue("current_1rm")
+		if current1RMStr != "" {
+			current1RM, err = strconv.ParseFloat(current1RMStr, 64)
+			if err != nil {
+				if err := templates.FormError("Invalid one rep max value").Render(r.Context(), w); err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+				}
+				return
+			}
+		}
 
 		if name == "" {
 			if err := templates.FormError("Exercise name is required").Render(r.Context(), w); err != nil {
@@ -118,7 +124,7 @@ func CreateExerciseHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		_, err = db.AddExercise(name, description)
+		_, err = db.AddExercise(name, current1RM, notes)
 		if err != nil {
 			if err := templates.FormError("Failed to create exercise: "+err.Error()).Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -145,9 +151,6 @@ func UpdateExerciseHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		// Set headers before processing the form to avoid "Exercise name is required" flash
-		w.Header().Set("HX-Redirect", "/exercises/"+idStr)
-
 		err = r.ParseForm()
 		if err != nil {
 			if err := templates.FormError("Failed to parse form data").Render(r.Context(), w); err != nil {
@@ -157,7 +160,20 @@ func UpdateExerciseHandler(db *database.DB) http.HandlerFunc {
 		}
 
 		name := r.FormValue("name")
-		description := r.FormValue("description")
+		notes := r.FormValue("notes")
+
+		// Parse 1RM if provided
+		var current1RM float64
+		current1RMStr := r.FormValue("current_1rm")
+		if current1RMStr != "" {
+			current1RM, err = strconv.ParseFloat(current1RMStr, 64)
+			if err != nil {
+				if err := templates.FormError("Invalid one rep max value").Render(r.Context(), w); err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+				}
+				return
+			}
+		}
 
 		if name == "" {
 			if err := templates.FormError("Exercise name is required").Render(r.Context(), w); err != nil {
@@ -167,7 +183,7 @@ func UpdateExerciseHandler(db *database.DB) http.HandlerFunc {
 		}
 
 		// Update the exercise in the database
-		err = db.UpdateExercise(id, name, description)
+		err = db.UpdateExercise(id, name, current1RM, notes)
 		if err != nil {
 			if err := templates.FormError("Failed to update exercise: "+err.Error()).Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -175,40 +191,20 @@ func UpdateExerciseHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		// Check if one_rep_max was provided and save it
-		oneRepMaxStr := r.FormValue("one_rep_max")
-		if oneRepMaxStr != "" {
-			oneRepMax, err := strconv.ParseFloat(oneRepMaxStr, 64)
+		// If current1RM was provided, save it to the 1RM history
+		if current1RMStr != "" && current1RM > 0 {
+			_, err = db.SaveOneRepMax(id, current1RM)
 			if err != nil {
-				if err := templates.FormError("Invalid one rep max value").Render(r.Context(), w); err != nil {
+				if err := templates.FormError("Failed to save one rep max: "+err.Error()).Render(r.Context(), w); err != nil {
 					http.Error(w, "Error rendering template", http.StatusInternalServerError)
 				}
 				return
 			}
-
-			if oneRepMax > 0 {
-				_, err = db.SaveOneRepMax(id, oneRepMax)
-				if err != nil {
-					if err := templates.FormError("Failed to save one rep max: "+err.Error()).Render(r.Context(), w); err != nil {
-						http.Error(w, "Error rendering template", http.StatusInternalServerError)
-					}
-					return
-				}
-			}
 		}
 
-		// Instead of just setting HX-Redirect header, use a full page refresh
-		w.Header().Set("HX-Refresh", "true")
-
-		// Render success message
-		if err := templates.FormSuccess("Exercise updated successfully! Page will refresh...").Render(r.Context(), w); err != nil {
+		w.Header().Set("HX-Redirect", "/exercises/"+idStr)
+		if err := templates.FormSuccess("Exercise updated successfully! Redirecting...").Render(r.Context(), w); err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
-		}
-
-		// Add JavaScript fallback for browsers without HTMX
-		if _, err := fmt.Fprintf(w, "<script>setTimeout(function() { window.location.href = '/exercises/%s'; }, 800);</script>", idStr); err != nil {
-			http.Error(w, "Error writing response", http.StatusInternalServerError)
-			return
 		}
 	}
 }
@@ -229,7 +225,6 @@ func DeleteExerciseHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		// Return empty response for the HTMX swap
 		w.WriteHeader(http.StatusOK)
 	}
 }
@@ -244,16 +239,29 @@ func GetOneRepMaxHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		oneRepMax, err := db.GetLatestOneRepMax(id)
+		exercise, err := db.GetExercise(id)
 		if err != nil {
-			if err := templates.OneRepMaxValue(0, "").Render(r.Context(), w); err != nil {
+			http.Error(w, "Exercise not found", http.StatusBadRequest)
+			return
+		}
+
+		// If the exercise has a current_1rm value, use it
+		if exercise.Current1RM > 0 {
+			// Try to get the latest history record for date information
+			oneRepMax, err := db.GetLatestOneRepMax(id)
+			var formattedDate string
+			if err == nil {
+				formattedDate = oneRepMax.CreatedAt.Format("Jan 2, 2006")
+			}
+
+			if err := templates.OneRepMaxValue(exercise.Current1RM, formattedDate).Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
 			}
 			return
 		}
 
-		formattedDate := oneRepMax.Date.Format("Jan 2, 2006")
-		if err := templates.OneRepMaxValue(oneRepMax.Weight, formattedDate).Render(r.Context(), w); err != nil {
+		// No current 1RM
+		if err := templates.OneRepMaxValue(0, "").Render(r.Context(), w); err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		}
 	}

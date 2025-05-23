@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"math"
 	"net/http"
 	"strconv"
@@ -110,6 +109,21 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 		}
 
 		date := r.FormValue("date")
+		notes := r.FormValue("notes")
+
+		// Get template ID if provided
+		var templateID int64
+		templateIDStr := r.FormValue("template_id")
+		if templateIDStr != "" {
+			templateID, err = strconv.ParseInt(templateIDStr, 10, 64)
+			if err != nil {
+				if err := templates.FormError("Invalid template ID").Render(r.Context(), w); err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+				}
+				return
+			}
+		}
+
 		if date == "" {
 			if err := templates.FormError("Date is required").Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -117,10 +131,16 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		notes := r.FormValue("notes")
+		// Validate date format
+		_, err = time.Parse("2006-01-02", date)
+		if err != nil {
+			if err := templates.FormError("Invalid date format. Please use YYYY-MM-DD").Render(r.Context(), w); err != nil {
+				http.Error(w, "Error rendering template", http.StatusInternalServerError)
+			}
+			return
+		}
 
-		// Create the workout
-		workoutID, err := db.AddWorkout(date, notes)
+		workoutID, err := db.AddWorkout(date, templateID, notes)
 		if err != nil {
 			if err := templates.FormError("Failed to create workout: "+err.Error()).Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -171,7 +191,7 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 			}
 
 			// Add the exercise to the workout
-			workoutExerciseID, err := db.AddWorkoutExercise(workoutID, exerciseID, exerciseNote)
+			workoutExerciseID, err := db.AddWorkoutExercise(workoutID, exerciseID, i, exerciseNote)
 			if err != nil {
 				if err := templates.FormError("Failed to add exercise to workout: "+err.Error()).Render(r.Context(), w); err != nil {
 					http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -243,8 +263,19 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 				}
 
 				// Create each set in the range
-				for setOrder := startSet; setOrder <= endSet; setOrder++ {
-					_, err = db.AddSet(workoutExerciseID, repCount, weight, percentage, setOrder, rangeID)
+				for setNumber := startSet; setNumber <= endSet; setNumber++ {
+					// Convert percentage to integer (e.g. 75.5 -> 76)
+					percentage1RM := int(math.Round(percentage))
+
+					_, err = db.AddSet(
+						workoutExerciseID,
+						setNumber,
+						rangeID,
+						repCount,
+						percentage1RM,
+						weight,
+						"", // notes
+					)
 					if err != nil {
 						if err := templates.FormError("Failed to add set: "+err.Error()).Render(r.Context(), w); err != nil {
 							http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -255,7 +286,6 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 				}
 
 				// Track the heaviest weight used in this workout for 1RM calculation
-				// Lower reps at the same weight is better for 1RM calculation since it's closer to max strength
 				if weight > maxWeight || (weight == maxWeight && repCount < repsAtMaxWeight) {
 					maxWeight = weight
 					repsAtMaxWeight = repCount
@@ -268,31 +298,6 @@ func CreateWorkoutHandler(db *database.DB) http.HandlerFunc {
 					http.Error(w, "Error rendering template", http.StatusInternalServerError)
 				}
 				return
-			}
-
-			// After adding all sets, calculate 1RM based on the heaviest set
-			if maxWeight > 0 {
-				updateEstimated1RM(db, exerciseID, repsAtMaxWeight, maxWeight)
-			}
-
-			// After adding all sets, calculate 1RM based on the heaviest set
-			if maxWeight > 0 {
-				updateEstimated1RM(db, exerciseID, repsAtMaxWeight, maxWeight)
-			}
-
-			// After adding all sets, calculate 1RM based on the heaviest set
-			if maxWeight > 0 {
-				updateEstimated1RM(db, exerciseID, repsAtMaxWeight, maxWeight)
-			}
-
-			// After adding all sets, calculate 1RM based on the heaviest set
-			if maxWeight > 0 {
-				updateEstimated1RM(db, exerciseID, repsAtMaxWeight, maxWeight)
-			}
-
-			// After adding all sets, calculate 1RM based on the heaviest set
-			if maxWeight > 0 {
-				updateEstimated1RM(db, exerciseID, repsAtMaxWeight, maxWeight)
 			}
 
 			// After adding all sets, calculate 1RM based on the heaviest set
@@ -324,7 +329,6 @@ func DeleteWorkoutHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		// Return OK for now
 		w.Header().Add("HX-Redirect", "/workouts")
 		w.WriteHeader(http.StatusOK)
 	}
@@ -350,10 +354,22 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		// Set HTMX headers early to prevent form error flashes
-		w.Header().Set("HX-Refresh", "true")
-
 		date := r.FormValue("date")
+		notes := r.FormValue("notes")
+
+		// Get template ID if provided
+		var templateID int64
+		templateIDStr := r.FormValue("template_id")
+		if templateIDStr != "" {
+			templateID, err = strconv.ParseInt(templateIDStr, 10, 64)
+			if err != nil {
+				if err := templates.FormError("Invalid template ID").Render(r.Context(), w); err != nil {
+					http.Error(w, "Error rendering template", http.StatusInternalServerError)
+				}
+				return
+			}
+		}
+
 		if date == "" {
 			if err := templates.FormError("Date is required").Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -361,21 +377,25 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 			return
 		}
 
-		notes := r.FormValue("notes")
+		// Validate date format
+		_, err = time.Parse("2006-01-02", date)
+		if err != nil {
+			if err := templates.FormError("Invalid date format. Please use YYYY-MM-DD").Render(r.Context(), w); err != nil {
+				http.Error(w, "Error rendering template", http.StatusInternalServerError)
+			}
+			return
+		}
 
 		// Update the workout
-		err = db.UpdateWorkout(id, date, notes)
+		err = db.UpdateWorkout(id, date, templateID, notes)
 		if err != nil {
 			if err := templates.FormError("Failed to update workout: "+err.Error()).Render(r.Context(), w); err != nil {
 				http.Error(w, "Error rendering template", http.StatusInternalServerError)
 			}
 			return
 		}
-			
-		// Get range identifiers
-		rangeIDs := r.Form["range_id[]"]
 
-		// Delete existing workout exercises and sets
+		// Delete existing exercises and sets, then re-add them
 		err = db.DeleteWorkoutExercisesAndSets(id)
 		if err != nil {
 			if err := templates.FormError("Failed to update workout exercises: "+err.Error()).Render(r.Context(), w); err != nil {
@@ -397,17 +417,8 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 		weights := r.Form["weight[]"]
 		percentages := r.Form["percentage[]"]
 
-		// Validate we have at least one exercise
-		if len(exerciseIDs) == 0 {
-			if err := templates.FormError("At least one exercise is required").Render(r.Context(), w); err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			}
-			return
-		}
-
-		// Process each exercise
+		// Process each exercise (similar to create)
 		for i, exerciseIDStr := range exerciseIDs {
-			// Skip empty exercise selections
 			if exerciseIDStr == "" {
 				continue
 			}
@@ -420,14 +431,12 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 				return
 			}
 
-			// Get the notes for this exercise (if available)
 			var exerciseNote string
 			if i < len(exerciseNotes) {
 				exerciseNote = exerciseNotes[i]
 			}
 
-			// Add the exercise to the workout
-			workoutExerciseID, err := db.AddWorkoutExercise(id, exerciseID, exerciseNote)
+			workoutExerciseID, err := db.AddWorkoutExercise(id, exerciseID, i, exerciseNote)
 			if err != nil {
 				if err := templates.FormError("Failed to add exercise to workout: "+err.Error()).Render(r.Context(), w); err != nil {
 					http.Error(w, "Error rendering template", http.StatusInternalServerError)
@@ -435,237 +444,167 @@ func UpdateWorkoutHandler(db *database.DB) http.HandlerFunc {
 				return
 			}
 
-			// Process each set range for this exercise
-			totalSets := 0
+			rangeIDs := r.Form["range_id[]"]
 			var maxWeight float64 = 0
 			var repsAtMaxWeight = 0
 
-			// For each set range in the current exercise
 			for rangeIdx := 0; rangeIdx < len(setStarts) && rangeIdx < len(setEnds) && rangeIdx < len(reps); rangeIdx++ {
-				// Parse set range
 				startSet, err := strconv.Atoi(setStarts[rangeIdx])
 				if err != nil || startSet < 1 {
-					if err := templates.FormError("Invalid set range start").Render(r.Context(), w); err != nil {
-						http.Error(w, "Error rendering template", http.StatusInternalServerError)
-					}
-					return
+					continue
 				}
 
 				endSet, err := strconv.Atoi(setEnds[rangeIdx])
 				if err != nil || endSet < startSet {
-					if err := templates.FormError("Invalid set range end").Render(r.Context(), w); err != nil {
-						http.Error(w, "Error rendering template", http.StatusInternalServerError)
-					}
-					return
+					continue
 				}
 
-				// Parse rep count for this range
 				repCount, err := strconv.Atoi(reps[rangeIdx])
 				if err != nil || repCount < 1 {
-					if err := templates.FormError("Invalid rep count").Render(r.Context(), w); err != nil {
-						http.Error(w, "Error rendering template", http.StatusInternalServerError)
-					}
-					return
+					continue
 				}
 
-				// Parse weight for this range
 				weight, err := strconv.ParseFloat(weights[rangeIdx], 64)
 				if err != nil || weight < 0 {
-					if err := templates.FormError("Invalid weight").Render(r.Context(), w); err != nil {
-						http.Error(w, "Error rendering template", http.StatusInternalServerError)
-					}
-					return
+					continue
 				}
 
-				// Parse percentage (optional) for this range
 				var percentage float64
 				if rangeIdx < len(percentages) && percentages[rangeIdx] != "" {
-					percentage, err = strconv.ParseFloat(percentages[rangeIdx], 64)
-					if err != nil || percentage < 0 || percentage > 100 {
-						if err := templates.FormError("Invalid percentage of 1RM").Render(r.Context(), w); err != nil {
-							http.Error(w, "Error rendering template", http.StatusInternalServerError)
-						}
-						return
-					}
+					percentage, _ = strconv.ParseFloat(percentages[rangeIdx], 64)
 				}
 
-				// Determine range ID for this set range
 				rangeID := fmt.Sprintf("range%d", rangeIdx+1)
 				if rangeIdx < len(rangeIDs) && rangeIDs[rangeIdx] != "" {
 					rangeID = rangeIDs[rangeIdx]
 				}
 
-				// Create each set in the range
-				for setOrder := startSet; setOrder <= endSet; setOrder++ {
-					_, err = db.AddSet(workoutExerciseID, repCount, weight, percentage, setOrder, rangeID)
+				for setNumber := startSet; setNumber <= endSet; setNumber++ {
+					percentage1RM := int(math.Round(percentage))
+
+					_, err = db.AddSet(
+						workoutExerciseID,
+						setNumber,
+						rangeID,
+						repCount,
+						percentage1RM,
+						weight,
+						"",
+					)
 					if err != nil {
 						if err := templates.FormError("Failed to add set: "+err.Error()).Render(r.Context(), w); err != nil {
 							http.Error(w, "Error rendering template", http.StatusInternalServerError)
 						}
 						return
 					}
-					totalSets++
 				}
 
-				// Track the heaviest weight used in this workout for 1RM calculation
-				// Lower reps at the same weight is better for 1RM calculation since it's closer to max strength
 				if weight > maxWeight || (weight == maxWeight && repCount < repsAtMaxWeight) {
 					maxWeight = weight
 					repsAtMaxWeight = repCount
 				}
 			}
 
-			// After adding all sets, calculate 1RM based on the heaviest set
 			if maxWeight > 0 {
 				updateEstimated1RM(db, exerciseID, repsAtMaxWeight, maxWeight)
 			}
-
-			// Make sure at least one set was added
-			if totalSets == 0 {
-				if err := templates.FormError("Each exercise must have at least one set").Render(r.Context(), w); err != nil {
-					http.Error(w, "Error rendering template", http.StatusInternalServerError)
-				}
-				return
-			}
 		}
 
-		if err := templates.FormSuccess("Workout updated successfully! Page will refresh...").Render(r.Context(), w); err != nil {
+		w.Header().Set("HX-Redirect", "/workouts/"+idStr)
+		if err := templates.FormSuccess("Workout updated successfully! Redirecting...").Render(r.Context(), w); err != nil {
 			http.Error(w, "Error rendering template", http.StatusInternalServerError)
-		}
-		if _, err := fmt.Fprintf(w, "<script>setTimeout(function() { window.location.href = '/workouts/%d'; }, 800);</script>", id); err != nil {
-			http.Error(w, "Error writing response", http.StatusInternalServerError)
-			return
 		}
 	}
 }
 
-// GetExerciseCountHandler handles the GET /api/workouts/:id/exercise-count route
+// GetExerciseCountHandler handles requests for exercise count in workouts
 func GetExerciseCountHandler(db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := r.PathValue("id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			http.Error(w, "Invalid workout ID", http.StatusBadRequest)
+		exerciseIDStr := r.URL.Query().Get("exercise_id")
+		if exerciseIDStr == "" {
+			http.Error(w, "Exercise ID is required", http.StatusBadRequest)
 			return
 		}
 
-		workout, err := db.GetWorkoutDetails(id)
+		_, err := strconv.ParseInt(exerciseIDStr, 10, 64)
 		if err != nil {
-			if err := templates.ExerciseCount(0).Render(r.Context(), w); err != nil {
-				http.Error(w, "Error rendering template", http.StatusInternalServerError)
-			}
+			http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
 			return
 		}
 
-		if err := templates.ExerciseCount(len(workout.Exercises)).Render(r.Context(), w); err != nil {
-			http.Error(w, "Error rendering template", http.StatusInternalServerError)
-		}
+		// This would need a database method to count exercise usage
+		// For now, return a simple response
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]int{"count": 0})
 	}
 }
 
-// GetExerciseHistoryHandler handles the GET /api/exercises/:id/history route
+// GetExerciseHistoryHandler handles requests for exercise history data
 func GetExerciseHistoryHandler(db *database.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := r.PathValue("id")
-		id, err := strconv.ParseInt(idStr, 10, 64)
-		if err != nil {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			if err := json.NewEncoder(w).Encode([]map[string]any{}); err != nil {
-				log.Printf("Error encoding JSON response: %v", err)
-			} // Return empty array instead of error
+		exerciseIDStr := r.URL.Query().Get("exercise_id")
+		if exerciseIDStr == "" {
+			http.Error(w, "Exercise ID is required", http.StatusBadRequest)
 			return
 		}
 
-		history, err := db.GetExerciseHistory(id)
+		exerciseID, err := strconv.ParseInt(exerciseIDStr, 10, 64)
 		if err != nil {
-			// Return empty array instead of error
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			if err := json.NewEncoder(w).Encode([]map[string]any{}); err != nil {
-				log.Printf("Error encoding JSON response: %v", err)
-			}
+			http.Error(w, "Invalid exercise ID", http.StatusBadRequest)
 			return
 		}
 
-		// For each workout exercise, fetch the sets
+		history, err := db.GetExerciseHistory(exerciseID)
+		if err != nil {
+			http.Error(w, "Failed to fetch exercise history", http.StatusInternalServerError)
+			return
+		}
+
+		// Transform to chart data
 		type ChartData struct {
-			Date   string    `json:"date"`
-			Weight []float64 `json:"weights"`
-			Reps   []int     `json:"reps"`
+			Date          string  `json:"date"`
+			Weight        float64 `json:"weight"`
+			Reps          int     `json:"reps"`
+			RPE           int     `json:"rpe"`
+			Percentage1RM int     `json:"percentage_1rm"`
 		}
 
 		var chartData []ChartData
-
 		for _, workoutExercise := range history {
+			// Get sets for this workout exercise
 			sets, err := db.GetExerciseSetsForWorkout(workoutExercise.ID)
 			if err != nil {
-				// Skip this workout but log the error
-				log.Printf("Error fetching sets for workout exercise %d: %v", workoutExercise.ID, err)
+				continue // Skip on error
+			}
+			
+			// Get workout details to get the date
+			workouts, err := db.GetWorkouts()
+			if err != nil {
 				continue
 			}
-
-			// Initialize with empty arrays (not nil)
-			weights := []float64{}
-			reps := []int{}
-
+			
+			var workoutDate time.Time
+			for _, w := range workouts {
+				if w.ID == workoutExercise.WorkoutID {
+					workoutDate = w.Date
+					break
+				}
+			}
+			
 			for _, set := range sets {
-				weights = append(weights, set.Weight)
-				reps = append(reps, set.Reps)
+				chartData = append(chartData, ChartData{
+					Date:          workoutDate.Format("2006-01-02"),
+					Weight:        set.Weight,
+					Reps:          set.Reps,
+					RPE:           0, // RPE not in current schema
+					Percentage1RM: set.Percentage1RM,
+				})
 			}
-
-			// Parse the date from the query result (we already get the date in GetExerciseHistory)
-			// Format date as "Week W, MMM" (e.g., "Week 32, Aug")
-			var dateStr string
-
-			// Get all workouts to find the one for this exercise
-			allWorkouts, err := db.GetWorkouts()
-			if err != nil {
-				// Fallback if we can't get the workouts
-				dateStr = strconv.FormatInt(workoutExercise.WorkoutID, 10)
-			} else {
-				// Find the matching workout
-				var workoutDate time.Time
-				for _, w := range allWorkouts {
-					if w.ID == workoutExercise.WorkoutID {
-						workoutDate = w.Date
-						break
-					}
-				}
-
-				if !workoutDate.IsZero() {
-					// Format as week and month
-					_, week := workoutDate.ISOWeek()
-					monthName := workoutDate.Format("Jan")
-					dateStr = fmt.Sprintf("Week %d, %s", week, monthName)
-				} else {
-					// Fallback to ID if we couldn't find the workout
-					dateStr = strconv.FormatInt(workoutExercise.WorkoutID, 10)
-				}
-			}
-
-			chartData = append(chartData, ChartData{
-				Date:   dateStr,
-				Weight: weights,
-				Reps:   reps,
-			})
 		}
 
-		// Ensure we always send a valid array, even if empty
-		if chartData == nil {
-			chartData = []ChartData{}
-		}
-
-		// Respond with JSON
 		w.Header().Set("Content-Type", "application/json")
 		if err := json.NewEncoder(w).Encode(chartData); err != nil {
-			// If encoding fails, return an empty array
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK)
-			if err := json.NewEncoder(w).Encode([]map[string]any{}); err != nil {
-				log.Printf("Error encoding JSON response: %v", err)
-			}
-			return
+			http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		}
 	}
 }
