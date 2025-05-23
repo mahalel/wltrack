@@ -59,12 +59,11 @@ type TemplateExercise struct {
 
 // WorkoutExercise represents an exercise performed during a workout
 type WorkoutExercise struct {
-	ID         int64     `json:"workout_exercise_id"`
-	WorkoutID  int64     `json:"workout_id"`
-	ExerciseID int64     `json:"exercise_id"`
-	OrderIndex int       `json:"order_index"`
-	Notes      string    `json:"notes,omitempty"`
-	CreatedAt  time.Time `json:"created_at,omitempty"`
+	ID         int64  `json:"workout_exercise_id"`
+	WorkoutID  int64  `json:"workout_id"`
+	ExerciseID int64  `json:"exercise_id"`
+	OrderIndex int    `json:"order_index"`
+	Notes      string `json:"notes,omitempty"`
 }
 
 // Set represents a single set of an exercise
