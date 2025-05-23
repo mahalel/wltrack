@@ -50,7 +50,6 @@ Junction table linking workouts to exercises.
 | `exercise_id` | INTEGER | Foreign key referencing exercises |
 | `order_index` | INTEGER | Order of exercise in workout |
 | `notes` | TEXT | Notes specific to this exercise in this workout |
-| `created_at` | TEXT | Timestamp when the workout exercise was created |
 
 ### Sets Table
 

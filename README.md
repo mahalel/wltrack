@@ -1,10 +1,13 @@
 # WLTrack - Weightlifting Tracking Application
 
-WLTrack is a minimal web application built with the GOTH stack (Go, templ, HTMX) for tracking weightlifting progress. It allows users to record their weightlifting workouts, track exercises, and visualize progress over time.
+WLTrack is a minimal web application built with the GOTH stack (Go, templ, HTMX) for tracking weightlifting progress. It allows users to record their weightlifting workouts, track exercises, manage workout templates, and visualize progress over time.
 
 ## Features
 
 - Record daily weightlifting results (sets, reps, weight, percentage of 1RM)
+- Create and use workout templates for consistent training
+- Track personal records (PRs) for different rep ranges
+- Monitor one-rep maximum (1RM) progress over time
 - Store data in a Turso database (or local sqlite)
 - Visualize progress with graphs for each exercise
 - Responsive design with HTMX for dynamic interactions
@@ -60,7 +63,19 @@ WLTrack is a minimal web application built with the GOTH stack (Go, templ, HTMX)
 
    > Note: If you don't set the TURSO_URL, the application will automatically create and use a local SQLite database in the `data/wltrack.db` file. This is convenient for development and testing. You can delete this file at any time to reset your database.
 
-5. Generate templ files:
+5. Setup or update your database schema:
+   ```
+   # For a new database
+   ./scripts/apply_schema_changes.sh -r
+
+   # To add sample data
+   ./scripts/apply_schema_changes.sh -s
+
+   # To migrate an existing database to the new schema (backup will be created)
+   ./scripts/apply_schema_changes.sh -m
+   ```
+
+6. Generate templ files:
    ```
    templ generate
    ```
@@ -84,7 +99,6 @@ Run tests with coverage report:
 just test-coverage
 ```
 
-The project uses both real SQLite-based tests and mock database implementations for unit testing.
 
 ## Development Commands
 
@@ -188,6 +202,11 @@ Note: The project can also be published to GitHub Container Registry (GHCR) usin
 │   ├── models          # Data models
 │   └── templates       # templ templates
 │       └── auth        # Authentication templates
+├── scripts             # Utility scripts
+│   ├── apply_schema_changes.sh  # Database schema management script
+│   ├── migrate_schema.sql       # SQL for migrating existing databases
+│   ├── reset_database.sql       # SQL for resetting the database
+│   └── sample_data.sql          # Sample data for testing
 ├── static              # Static files for both local development and container
 │   ├── css             # Stylesheets
 │   └── js              # JavaScript files
@@ -207,6 +226,33 @@ The application reads the following environment variables directly from the OS:
 - `TURSO_AUTH_TOKEN`: Your Turso auth token (required only for Turso)
 - `PORT`: Server port (defaults to 8080)
 - `ENV`: Environment name (defaults to "development")
+
+## Database Schema
+
+The application uses a comprehensive schema to track weightlifting data:
+
+- **Exercises**: Master list of all exercises with current 1RM and muscle group
+- **Workouts**: Individual workout sessions with date, duration, and status
+- **Sets**: Individual sets within exercises with reps, weight, and RPE
+- **Workout Templates**: Reusable workout plans
+- **Personal Records**: Track PRs for different rep ranges
+- **1RM History**: Monitor one-rep max progression over time
+
+You can reset or update your database schema using the scripts in the `scripts` directory:
+
+```bash
+# Reset database with the new schema (WARNING: deletes all data)
+./scripts/apply_schema_changes.sh -r
+
+# Migrate an existing database to the new schema
+./scripts/apply_schema_changes.sh -m
+
+# Add sample data
+./scripts/apply_schema_changes.sh -s
+
+# Specify a custom database path
+./scripts/apply_schema_changes.sh -d path/to/custom.db -r
+```
 
 ### Authentication Environment Variables
 
